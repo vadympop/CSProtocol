@@ -4,6 +4,7 @@ from asyncio import DatagramTransport
 from collections import defaultdict
 from typing import Sequence, Any, Dict
 
+from shared.codes import PacketCode
 from shared.middlewares.types import MiddlewareType, NextMiddlewareType
 from shared.handlers.types import CallbackType
 from shared.packet import Packet
@@ -11,21 +12,21 @@ from shared.packet import Packet
 
 class MiddlewareManager:
     def __init__(self):
-        self._middlewares: Dict[str, list[MiddlewareType]] = defaultdict(list)
+        self._middlewares: Dict[PacketCode, list[MiddlewareType]] = defaultdict(list)
 
     def register(
-        self, code: str, middleware: MiddlewareType,
+        self, code: PacketCode, middleware: MiddlewareType,
     ) -> MiddlewareType:
         self._middlewares[code].append(middleware)
         return middleware
 
-    def unregister(self, code: str, middleware: MiddlewareType) -> None:
+    def unregister(self, code: PacketCode, middleware: MiddlewareType) -> None:
         self._middlewares[code].remove(middleware)
 
-    def collect_middlewares(self, code: str, with_global: bool = False) -> list[MiddlewareType]:
+    def collect_middlewares(self, code: PacketCode, with_global: bool = False) -> list[MiddlewareType]:
         found_midlw = self._middlewares.get(code, [])
         if with_global:
-            found_midlw += self._middlewares.get("*", [])
+            found_midlw += self._middlewares.get(PacketCode.GLOBAL, [])
 
         return found_midlw
 

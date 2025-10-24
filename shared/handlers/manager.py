@@ -4,22 +4,23 @@ from asyncio import DatagramTransport
 from collections import defaultdict
 from typing import Callable, Dict
 
+from shared.codes import PacketCode
 from shared.handlers.types import CallbackType, StartupCallbackType
 from shared.middlewares.manager import MiddlewareManager
 
 
 class HandlersManager:
     def __init__(self):
-        self._callbacks: Dict[str, list[CallbackType]] = defaultdict(list)
+        self._callbacks: Dict[PacketCode, list[CallbackType]] = defaultdict(list)
         self._startup_callbacks: list[StartupCallbackType] = []
         self._transport: DatagramTransport | None = None
         self.middlewares = MiddlewareManager()
 
-    def receive(self, code: str) -> Callable[[CallbackType], CallbackType]:
+    def receive(self, code: PacketCode) -> Callable[[CallbackType], CallbackType]:
         """
         Decorator for registering event handlers
         """
-        if not code.isdigit() and code != "*":
+        if not code.isdigit() and code != PacketCode.GLOBAL:
             raise TypeError(f"Handler code {code} has invalid type")
 
         def wrapper(callback: CallbackType) -> CallbackType:
