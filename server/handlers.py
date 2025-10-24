@@ -1,11 +1,15 @@
 from asyncio import DatagramTransport
 
-from server.utils import generate_sensor_token
 from shared import packet as pkt
 from shared.codes import PacketCode
 from shared.handlers.manager import HandlersManager
 
+from .utils import generate_sensor_token
+from .middlewares import check_token, check_crc
+
 manager = HandlersManager()
+manager.middlewares.register(check_crc)
+manager.middlewares.register(check_token)
 
 
 @manager.receive(PacketCode.SENSOR_REGISTRATION)
