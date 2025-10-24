@@ -1,5 +1,3 @@
-import ujson as json
-
 from asyncio import DatagramTransport
 from collections import defaultdict
 from typing import Callable, Dict
@@ -7,6 +5,7 @@ from typing import Callable, Dict
 from shared.codes import PacketCode
 from shared.handlers.types import CallbackType, StartupCallbackType
 from shared.middlewares.manager import MiddlewareManager
+from shared.packet import Packet
 
 
 class HandlersManager:
@@ -42,14 +41,12 @@ class HandlersManager:
             callback(transport)
 
     def process(self, data: bytes) -> None:
-        decoded_data = data.decode(encoding="utf-8")
-        decoded_data = json.loads(decoded_data)
+        packet = Packet.from_any_payload(data)
 
-        found_handlers = self._callbacks.get(decoded_data["code"], [])
-
+        found_handlers = self._callbacks.get(packet.code, [])
         for handler in found_handlers:
             middleware = MiddlewareManager.wrap_middlewares(
-                self.middlewares.collect_middlewares(decoded_data["code"], True),
+                self.middlewares.collect_middlewares(packet.code, True),
                 handler
             )
-            middleware(None, self._transport)
+            middleware(packet, self._transport)
