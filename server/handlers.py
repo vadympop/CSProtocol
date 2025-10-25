@@ -40,7 +40,6 @@ def device_data_receiving(
 def check_alive_response(
         _: pkt.CheckAliveResponsePkt,
         addr: PacketAddr,
-        __: DatagramTransport
 ) -> None:
     manager.sensors.mark_alive(addr)
     print(f"[✓] Sensor {addr} reconnected")

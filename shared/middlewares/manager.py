@@ -1,12 +1,11 @@
 import functools
-from asyncio import DatagramTransport
 
 from collections import defaultdict
 from typing import Sequence, Any, Dict
 
 from shared.codes import PacketCode
 from shared.middlewares.types import MiddlewareType, NextMiddlewareType
-from shared.handlers.types import CallbackType, PacketAddr
+from shared.handlers.types import CallbackType
 from shared.packet import Packet
 
 
@@ -40,8 +39,8 @@ class MiddlewareManager:
         middlewares: Sequence[MiddlewareType], final_handler: CallbackType
     ) -> NextMiddlewareType:
         @functools.wraps(final_handler)
-        def handler_wrapper(packet: Packet, addr: PacketAddr, transport: DatagramTransport) -> Any:
-            return final_handler(packet, addr, transport)
+        def handler_wrapper(packet: Packet, **kwargs) -> Any:
+            return final_handler(packet, **kwargs)
 
         middleware = handler_wrapper
         for m in reversed(middlewares):

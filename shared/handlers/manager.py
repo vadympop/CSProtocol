@@ -53,10 +53,14 @@ class HandlersManager:
 
         packet = Packet.from_any_payload(data)
 
+        middleware_kwargs = {"transport": self._transport, "addr": addr}
+        if self.server_mode:
+            middleware_kwargs |= {"sensors": self.sensors}
+
         found_handlers = self._callbacks.get(packet.code, [])
         for handler in found_handlers:
             middleware = MiddlewareManager.wrap_middlewares(
                 self.middlewares.collect_middlewares(packet.code, True),
                 handler
             )
-            middleware(packet, addr, self._transport)
+            middleware(packet, middleware_kwargs)
