@@ -5,7 +5,7 @@ from asyncio import DatagramTransport
 from typing import Any
 
 from shared.handlers.types import PacketAddr, CallbackType
-from shared.packet import Packet, InvalidTokenPkt
+from shared.packet import Packet, InvalidTokenPkt, InvalidCrcPkt
 from shared.sensors import SensorManager
 
 
@@ -39,7 +39,7 @@ def check_crc(
 
     recalculated_crc = zlib.crc32(json.dumps(dict_packet, separators=(",", ":")).encode("utf-8")) & 0xFFFFFFFF
     if not recv_crc == recalculated_crc:
-        transport.sendto(InvalidTokenPkt().to_bytes(), addr)
+        transport.sendto(InvalidCrcPkt().to_bytes(), addr)
         return
 
     return handler(packet, data)

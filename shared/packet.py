@@ -186,3 +186,9 @@ class CheckAliveResponsePkt(Packet):
 @dataclass
 class InvalidTokenPkt(Packet):
     __CODE__ = PacketCode.INVALID_TOKEN
+
+
+@register_packet
+@dataclass
+class InvalidCrcPkt(Packet):
+    __CODE__ = PacketCode.INVALID_CRC

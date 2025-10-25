@@ -9,5 +9,6 @@ class PacketCode(str, Enum):
     CHECK_ALIVE = "30"
     CHECK_ALIVE_RESPONSE = "31"
     INVALID_TOKEN = "40"
+    INVALID_CRC = "41"
 
     GLOBAL = "*"
