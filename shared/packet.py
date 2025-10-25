@@ -1,11 +1,13 @@
 import contextlib
 import datetime
 import functools
+import zlib
+
 import ujson as json
 
 from abc import ABC
 from dataclasses import dataclass, asdict, field, fields
-from typing import Type, Dict, Callable, TypeVar
+from typing import Type, Dict, Callable, TypeVar, Any
 
 from shared.codes import PacketCode
 
@@ -44,12 +46,21 @@ class Packet(ABC):
 
         self.code = self.__CODE__
 
+    def to_dict(self) -> dict[str, Any]:
+        return asdict(self)
+
     def to_bytes(self) -> bytes:
-        data_in_dict = asdict(self)
+        data_in_dict = self.to_dict()
         data_in_dict["code"] = int(data_in_dict["code"])
         data_in_dict["timestamp"] = data_in_dict["timestamp"].timestamp()
 
-        return json.dumps(data_in_dict).encode("utf-8")
+        data_in_dict.pop("crc", None)
+        json_bytes = json.dumps(data_in_dict, separators=(",", ":")).encode("utf-8")
+
+        self.crc = zlib.crc32(json_bytes) & 0xFFFFFFFF
+        data_in_dict["crc"] = self.crc
+
+        return json.dumps(data_in_dict, separators=(",", ":")).encode("utf-8")
 
     @classmethod
     def parse_timestamp(cls, payload: dict) -> datetime.datetime:
