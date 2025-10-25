@@ -6,14 +6,17 @@ from shared.codes import PacketCode
 from shared.handlers.types import CallbackType, StartupCallbackType
 from shared.middlewares.manager import MiddlewareManager
 from shared.packet import Packet
+from shared.sensors import SensorManager
 
 
 class HandlersManager:
-    def __init__(self):
+    def __init__(self, server_mode: bool = True):
         self._callbacks: Dict[PacketCode, list[CallbackType]] = defaultdict(list)
         self._startup_callbacks: list[StartupCallbackType] = []
         self._transport: DatagramTransport | None = None
-        self.middlewares = MiddlewareManager()
+        self.middlewares: MiddlewareManager = MiddlewareManager()
+
+        self.sensors: SensorManager | None = SensorManager() if server_mode else None
 
     def receive(self, code: PacketCode) -> Callable[[CallbackType], CallbackType]:
         """
