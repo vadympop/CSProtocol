@@ -14,8 +14,9 @@ class HandlersManager:
         self._callbacks: Dict[PacketCode, list[CallbackType]] = defaultdict(list)
         self._startup_callbacks: list[StartupCallbackType] = []
         self._transport: DatagramTransport | None = None
-        self.middlewares: MiddlewareManager = MiddlewareManager()
+        self.server_mode = server_mode
 
+        self.middlewares: MiddlewareManager = MiddlewareManager()
         self.sensors: SensorManager | None = SensorManager() if server_mode else None
 
     def receive(self, code: PacketCode) -> Callable[[CallbackType], CallbackType]:
@@ -40,10 +41,16 @@ class HandlersManager:
 
     def on_startup(self, transport: DatagramTransport) -> None:
         self._transport = transport
+        if self.server_mode:
+            self.sensors.init_transport(transport)
+
         for callback in self._startup_callbacks:
             callback(transport)
 
     def process(self, data: bytes, addr: PacketAddr) -> None:
+        if self.server_mode:
+            self.sensors.update(addr)
+
         packet = Packet.from_any_payload(data)
 
         found_handlers = self._callbacks.get(packet.code, [])
