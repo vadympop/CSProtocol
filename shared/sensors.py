@@ -42,6 +42,12 @@ class SensorManager:
 
         self._sensors[addr] = SensorInfo(addr, sensor_type, time.time(), token, True)
 
+    def unregister(self, addr: PacketAddr) -> None:
+        self._sensors[addr].check_alive_task.cancel()
+        self._sensors[addr].disconnected_task.cancel()
+
+        self._sensors.pop(addr)
+
     def update(self, addr: PacketAddr) -> None:
         if addr in self._sensors:
             self._sensors[addr].last_seen = time.time()
@@ -86,6 +92,9 @@ class SensorManager:
             attempts += 1
 
             await asyncio.sleep(5)
+
+        # Unregister sensor if sensor doesnt reply and task wasnt cancelled earlier
+        self.unregister(sensor.addr)
 
     def start_disconnected_tasks(self, sensor: SensorInfo) -> None:
         sensor.disconnected_task = asyncio.create_task(self.disconnected_task(sensor))
