@@ -1,12 +1,8 @@
 from asyncio import DatagramTransport
-from typing import Callable, Any, Union
+from typing import Callable, Any
 
 from shared.handlers.types import PacketAddr
-from shared.middlewares.base import BaseMiddleware
 from shared.packet import Packet
 
 NextMiddlewareType = Callable[[Packet, PacketAddr, DatagramTransport], Any]
-MiddlewareType = Union[
-    BaseMiddleware,
-    Callable[[NextMiddlewareType, Packet, PacketAddr, DatagramTransport], Any],
-]
+MiddlewareType = Callable[[NextMiddlewareType, Packet, PacketAddr, DatagramTransport], Any],
