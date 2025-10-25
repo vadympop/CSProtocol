@@ -24,22 +24,23 @@ def device_registration(
     token = generate_sensor_token()
     manager.sensors.register(addr, packet.sensor_type, token)
 
-    transport.sendto(pkt.RegistrationAckPkt(token=token).to_bytes())
+    transport.sendto(pkt.RegistrationAckPkt(token=token).to_bytes(), addr)
 
 
 @manager.receive(PacketCode.SENSOR_DATA)
 def device_data_receiving(
-        packet: pkt.SensorRegistrationPkt,
+        packet: pkt.SensorDataPkt,
         addr: PacketAddr,
         transport: DatagramTransport
 ) -> None:
-    transport.sendto(pkt.DataAckPkt().to_bytes())
+    transport.sendto(pkt.DataAckPkt().to_bytes(), addr)
 
 
 @manager.receive(PacketCode.CHECK_ALIVE_RESPONSE)
 def check_alive_response(
-        packet: pkt.SensorRegistrationPkt,
+        _: pkt.CheckAliveResponsePkt,
         addr: PacketAddr,
-        transport: DatagramTransport
+        __: DatagramTransport
 ) -> None:
-    pass
+    manager.sensors.mark_alive(addr)
+    print(f"[✓] Sensor {addr} reconnected")
