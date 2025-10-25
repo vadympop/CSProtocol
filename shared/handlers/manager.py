@@ -3,7 +3,7 @@ from collections import defaultdict
 from typing import Callable, Dict
 
 from shared.codes import PacketCode
-from shared.handlers.types import CallbackType, StartupCallbackType
+from shared.handlers.types import CallbackType, StartupCallbackType, PacketAddr
 from shared.middlewares.manager import MiddlewareManager
 from shared.packet import Packet
 from shared.sensors import SensorManager
@@ -43,7 +43,7 @@ class HandlersManager:
         for callback in self._startup_callbacks:
             callback(transport)
 
-    def process(self, data: bytes) -> None:
+    def process(self, data: bytes, addr: PacketAddr) -> None:
         packet = Packet.from_any_payload(data)
 
         found_handlers = self._callbacks.get(packet.code, [])
@@ -52,4 +52,4 @@ class HandlersManager:
                 self.middlewares.collect_middlewares(packet.code, True),
                 handler
             )
-            middleware(packet, self._transport)
+            middleware(packet, addr, self._transport)

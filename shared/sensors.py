@@ -1,11 +1,13 @@
 import time
 from dataclasses import dataclass
-from typing import Dict, Tuple
+from typing import Dict
+
+from shared.handlers.types import PacketAddr
 
 
 @dataclass
 class SensorInfo:
-    addr: Tuple[str, int]
+    addr: PacketAddr
     sensor_type: str
     last_seen: float
     token: int
@@ -14,16 +16,16 @@ class SensorInfo:
 
 class SensorManager:
     def __init__(self, timeout: float = 15.0) -> None:
-        self._sensors: Dict[Tuple[str, int], SensorInfo] = {}
+        self._sensors: Dict[PacketAddr, SensorInfo] = {}
         self.timeout = timeout
 
-    def register(self, addr: Tuple[str, int], sensor_type: str, token: int) -> None:
+    def register(self, addr: PacketAddr, sensor_type: str, token: int) -> None:
         if addr not in self._sensors:
             print(f"[+] Registered sensor {sensor_type} @ {addr}")
 
         self._sensors[addr] = SensorInfo(addr, sensor_type, time.time(), token, True)
 
-    def update(self, addr: Tuple[str, int]) -> None:
+    def update(self, addr: PacketAddr) -> None:
         if addr in self._sensors:
             self._sensors[addr].last_seen = time.time()
             if not self._sensors[addr].alive:

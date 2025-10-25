@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 from asyncio import DatagramTransport
 from typing import Any, Callable
 
+from shared.handlers.types import PacketAddr
 from shared.packet import Packet
 
 
@@ -15,6 +16,7 @@ class BaseMiddleware(ABC):
         self,
         handler: Callable[[Packet, DatagramTransport], Any],
         packet: Packet,
+        addr: PacketAddr,
         transport: DatagramTransport,
     ) -> Any:
         """
