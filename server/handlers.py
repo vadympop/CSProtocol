@@ -6,11 +6,13 @@ from shared.handlers.manager import HandlersManager
 from shared.handlers.types import PacketAddr
 
 from .utils import generate_sensor_token
-from .middlewares import check_token, check_crc
+from .middlewares import check_token, check_crc, check_unregistered_sensors
 
 manager = HandlersManager()
 manager.middlewares.register(PacketCode.GLOBAL, check_crc)
-manager.middlewares.register(PacketCode.GLOBAL, check_token)
+# For all except SENSOR_REGISTRATION
+manager.middlewares.register([PacketCode.SENSOR_DATA, PacketCode.CHECK_ALIVE_RESPONSE], check_token)
+manager.middlewares.register([PacketCode.SENSOR_DATA, PacketCode.CHECK_ALIVE_RESPONSE], check_unregistered_sensors)
 
 
 @manager.receive(PacketCode.SENSOR_REGISTRATION)
@@ -20,6 +22,7 @@ def device_registration(
         transport: DatagramTransport
 ) -> None:
     token = generate_sensor_token()
+    manager.sensors.register(addr, packet.sensor_type, token)
 
     transport.sendto(pkt.RegistrationAckPkt(token=token).to_bytes())
 

@@ -21,3 +21,12 @@ def check_crc(
     transport: DatagramTransport,
 ):
     return handler(packet, addr, transport)
+
+
+def check_unregistered_sensors(
+    handler: Callable[[Packet, PacketAddr, DatagramTransport], Any],
+    packet: Packet,
+    addr: PacketAddr,
+    transport: DatagramTransport,
+):
+    return handler(packet, addr, transport)
