@@ -6,7 +6,7 @@ from typing import Sequence, Any, Dict
 
 from shared.codes import PacketCode
 from shared.middlewares.types import MiddlewareType, NextMiddlewareType
-from shared.handlers.types import CallbackType
+from shared.handlers.types import CallbackType, PacketAddr
 from shared.packet import Packet
 
 
@@ -15,9 +15,14 @@ class MiddlewareManager:
         self._middlewares: Dict[PacketCode, list[MiddlewareType]] = defaultdict(list)
 
     def register(
-        self, code: PacketCode, middleware: MiddlewareType,
+        self, code: PacketCode | list[PacketCode], middleware: MiddlewareType,
     ) -> MiddlewareType:
-        self._middlewares[code].append(middleware)
+        if isinstance(code, PacketCode):
+            code = [code,]
+
+        for rec in code:
+            self._middlewares[rec].append(middleware)
+
         return middleware
 
     def unregister(self, code: PacketCode, middleware: MiddlewareType) -> None:
@@ -35,8 +40,8 @@ class MiddlewareManager:
         middlewares: Sequence[MiddlewareType], final_handler: CallbackType
     ) -> NextMiddlewareType:
         @functools.wraps(final_handler)
-        def handler_wrapper(packet: Packet, transport: DatagramTransport) -> Any:
-            return final_handler(packet, transport)
+        def handler_wrapper(packet: Packet, addr: PacketAddr, transport: DatagramTransport) -> Any:
+            return final_handler(packet, addr, transport)
 
         middleware = handler_wrapper
         for m in reversed(middlewares):
