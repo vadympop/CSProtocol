@@ -54,17 +54,21 @@ class HandlersManager:
         for callback in self._startup_callbacks:
             callback(transport)
 
+    def _generate_middleware_kwargs(self, **kwargs) -> dict[str, Any]:
+        middleware_kwargs = {"transport": self._transport, **kwargs, **self.storage}
+        if self.server_mode:
+            middleware_kwargs |= {"sensors": self.sensors}
+
+        return middleware_kwargs
+
     def process(self, data: bytes, addr: PacketAddr) -> None:
         if self.server_mode:
             self.sensors.update(addr)
 
         packet = Packet.from_any_payload(data)
-
-        middleware_kwargs = {"transport": self._transport, "addr": addr, **self.storage}
-        if self.server_mode:
-            middleware_kwargs |= {"sensors": self.sensors}
-
+        middleware_kwargs = self._generate_middleware_kwargs(addr=addr)
         found_handlers = self._callbacks.get(packet.code, [])
+
         for handler in found_handlers:
             middleware = MiddlewareManager.wrap_middlewares(
                 self.middlewares.collect_middlewares(packet.code, True),
