@@ -53,12 +53,6 @@ def on_startup(transport: TransportWrapper, storage: dict[str, Any]) -> None:
     )
 
 
-@manager.receive(PacketCode.INVALID_CRC)
-def handle_invalid_crc(packet: pkt.Packet, transport: TransportWrapper) -> None:
-    transport.resend_last()
-    Logger.log_debug("Resend last data packet due to invalid CRC")
-
-
 @manager.receive(PacketCode.DATA_ACK)
 def handle_data_ack(packet: pkt.Packet, storage: dict[str, Any]) -> None:
     storage["is_data_ack"] = True
@@ -70,8 +64,8 @@ def handle_registration_ack(packet: pkt.RegistrationAckPkt, transport: Transport
     storage["token"] = packet.token
     Logger.log_debug(f"Token was received - {packet.token}")
 
-    asyncio.create_task(send_data(transport, storage))
-    asyncio.create_task(check_data_ack(transport, storage))
+    storage["send_data_task"] = asyncio.create_task(send_data(transport, storage))
+    storage["data_ack_task"] = asyncio.create_task(check_data_ack(transport, storage))
 
 
 @manager.receive(PacketCode.CHECK_ALIVE)
@@ -82,3 +76,21 @@ def handle_check_alive(
         storage: dict[str, Any]
 ) -> None:
     transport.sendto(pkt.CheckAliveResponsePkt(token=storage["token"]), addr)
+
+
+@manager.receive(PacketCode.INVALID_CRC)
+def handle_invalid_crc(packet: pkt.Packet, transport: TransportWrapper) -> None:
+    transport.resend_last()
+    Logger.log_debug("Resend last data packet due to invalid CRC")
+
+
+@manager.receive(PacketCode.INVALID_TOKEN)
+def handle_invalid_token(packet: pkt.Packet, storage: dict[str, Any]) -> None:
+    storage["token"] = None
+
+    # Cancel tasks
+    storage["send_data_task"].cancel()
+    storage["data_ack_task"].cancel()
+
+    # Send registration
+    manager.call_startup()
