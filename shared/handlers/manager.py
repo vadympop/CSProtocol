@@ -19,10 +19,21 @@ class HandlersManager:
         self.server_mode = server_mode
         self.storage: dict[str, Any] = initial_storage or {}
 
-        self.last_packet: Packet | None = None
-
         self.middlewares: MiddlewareManager = MiddlewareManager()
         self.sensors: SensorManager | None = SensorManager() if server_mode else None
+
+    def copy(self, storage: dict = None) -> "HandlersManager":
+        storage = self.storage if storage is None else self.storage | storage
+        manager = HandlersManager(self.server_mode, storage)
+
+        for code, callbacks in self._callbacks.items():
+            for callback in callbacks:
+                manager.receive(code)(callback)
+
+        for callback in self._startup_callbacks:
+            manager.startup()(callback)
+
+        return manager
 
     def receive(self, code: PacketCode) -> Callable[[CallbackType], CallbackType]:
         """
@@ -51,11 +62,12 @@ class HandlersManager:
         if self.server_mode:
             self.sensors.init_transport(self._transport)
 
+        callback_kwargs = self._generate_callback_kwargs()
         for callback in self._startup_callbacks:
-            callback(transport)
+            callback(**callback_kwargs)
 
-    def _generate_middleware_kwargs(self, **kwargs) -> dict[str, Any]:
-        middleware_kwargs = {"transport": self._transport, **kwargs, **self.storage}
+    def _generate_callback_kwargs(self, **kwargs) -> dict[str, Any]:
+        middleware_kwargs = {"transport": self._transport, "storage": self.storage, **kwargs}
         if self.server_mode:
             middleware_kwargs |= {"sensors": self.sensors}
 
@@ -66,7 +78,7 @@ class HandlersManager:
             self.sensors.update(addr)
 
         packet = Packet.from_any_payload(data)
-        middleware_kwargs = self._generate_middleware_kwargs(addr=addr)
+        middleware_kwargs = self._generate_callback_kwargs(addr=addr)
         found_handlers = self._callbacks.get(packet.code, [])
 
         for handler in found_handlers:
