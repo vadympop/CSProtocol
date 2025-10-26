@@ -5,6 +5,7 @@ from typing import Any
 
 from shared.codes import PacketCode
 from shared.handlers.types import PacketAddr
+from shared.logger import Logger
 from shared.packet import Packet
 
 
@@ -14,6 +15,7 @@ class TransportWrapper:
         self._last_packets: dict[PacketCode, dict[str, Any]] = {}
 
     def sendto(self, packet: Packet, addr: PacketAddr) -> None:
+        Logger.log_debug(f"Packet {packet.to_dict()} sent to {addr}")
         self._transport.sendto(packet.to_bytes(), addr)
         self._last_packets[packet.code] = {"packet": packet, "addr": addr, "time": time.time()}
 

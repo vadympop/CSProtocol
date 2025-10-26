@@ -21,6 +21,7 @@ def check_token(
 
     if sensors[addr].token != packet.token:
         transport.sendto(InvalidTokenPkt().to_bytes(), addr)
+        Logger.log_debug(f"Invalid token from {sensors.get_sensor_id(addr)}")
         return
 
     return handler(packet, data)
@@ -58,6 +59,7 @@ def check_unregistered_sensors(
     sensors: SensorManager = data["sensors"]
 
     if sensors[addr] is None:
+        Logger.log_debug(f"Received data from unregistered sensor {addr}")
         return
 
     return handler(packet, data)

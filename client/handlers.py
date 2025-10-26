@@ -7,6 +7,7 @@ from shared import packet as pkt
 from shared.codes import PacketCode
 from shared.handlers.manager import HandlersManager
 from shared.handlers.types import PacketAddr
+from shared.logger import Logger
 from shared.transport.manager import TransportWrapper
 
 manager = HandlersManager()
@@ -31,6 +32,7 @@ async def check_data_ack(transport: TransportWrapper, storage: dict[str, Any]) -
     while True:
         if storage["data_sent_at"] is not None:
             if not storage["is_data_ack"] and time.time() - storage["data_sent_at"] > 1:
+                Logger.log_debug(f"Data ack timed out, last packet was resent")
                 transport.resend_last(PacketCode.SENSOR_DATA)
 
         await asyncio.sleep(0.5)
@@ -56,16 +58,19 @@ def on_startup(transport: TransportWrapper, storage: dict[str, Any]) -> None:
 @manager.receive(PacketCode.INVALID_CRC)
 def handle_invalid_crc(packet: pkt.Packet, transport: TransportWrapper) -> None:
     transport.resend_last()
+    Logger.log_debug("Resend last data packet due to invalid CRC")
 
 
 @manager.receive(PacketCode.DATA_ACK)
 def handle_data_ack(packet: pkt.Packet, storage: dict[str, Any]) -> None:
     storage["is_data_ack"] = True
+    Logger.log_debug("Last data ack received")
 
 
 @manager.receive(PacketCode.REGISTRATION_ACK)
 def handle_registration_ack(packet: pkt.RegistrationAckPkt, storage: dict[str, Any]) -> None:
     storage["token"] = packet.token
+    Logger.log_debug(f"Token was received - {packet.token}")
 
 
 @manager.receive(PacketCode.CHECK_ALIVE)

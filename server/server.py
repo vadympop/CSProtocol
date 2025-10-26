@@ -2,6 +2,7 @@ from asyncio import DatagramProtocol, DatagramTransport, Future
 
 from shared.handlers.manager import HandlersManager
 from shared.handlers.types import PacketAddr
+from shared.logger import Logger
 
 
 class CSProtocol(DatagramProtocol):
@@ -13,14 +14,14 @@ class CSProtocol(DatagramProtocol):
     def connection_made(self, transport: DatagramTransport) -> None:
         self.transport = transport
         self._handlers_manager.on_startup(transport)
-        print("Connection established")
+        Logger.log_debug("Server started")
 
     def datagram_received(self, data: bytes, addr: PacketAddr) -> None:
         self._handlers_manager.process(data, addr)
 
     def error_received(self, exc: Exception) -> None:
-        print('Error received:', exc)
+        Logger.log_debug(f"Error received: {exc}")
 
     def connection_lost(self, exc: Exception | None) -> None:
-        print("Connection closed")
+        Logger.log_debug("Server stopped")
         self.on_connection_lost.set_result(True)
