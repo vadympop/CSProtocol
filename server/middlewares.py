@@ -50,4 +50,10 @@ def check_unregistered_sensors(
     packet: Packet,
     data: dict[str, Any]
 ):
+    addr: PacketAddr = data["addr"]
+    sensors: SensorManager = data["sensors"]
+
+    if sensors[addr] is None:
+        return
+
     return handler(packet, data)

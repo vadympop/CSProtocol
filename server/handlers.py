@@ -9,10 +9,15 @@ from .utils import generate_sensor_token
 from .middlewares import check_token, check_crc, check_unregistered_sensors
 
 manager = HandlersManager()
+manager.middlewares.register(
+    [PacketCode.SENSOR_DATA, PacketCode.CHECK_ALIVE_RESPONSE],
+    check_unregistered_sensors
+) # ~ For all except SENSOR_REGISTRATION
 manager.middlewares.register(PacketCode.GLOBAL, check_crc)
-# For all except SENSOR_REGISTRATION
-manager.middlewares.register([PacketCode.SENSOR_DATA, PacketCode.CHECK_ALIVE_RESPONSE], check_token)
-manager.middlewares.register([PacketCode.SENSOR_DATA, PacketCode.CHECK_ALIVE_RESPONSE], check_unregistered_sensors)
+manager.middlewares.register(
+    [PacketCode.SENSOR_DATA, PacketCode.CHECK_ALIVE_RESPONSE],
+    check_token
+)  # ~ For all except SENSOR_REGISTRATION
 
 
 @manager.receive(PacketCode.SENSOR_REGISTRATION)

@@ -119,4 +119,7 @@ class SensorManager:
         return [s for s in self._sensors.values() if s.disconnected]
 
     def __getitem__(self, addr: PacketAddr) -> SensorInfo | None:
+        if addr not in self._sensors:
+            return None
+
         return self._sensors.get(addr)
