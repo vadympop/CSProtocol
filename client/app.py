@@ -12,7 +12,7 @@ class SensorProtocol(DatagramProtocol):
 
     def connection_made(self, transport: DatagramTransport) -> None:
         self.transport = transport
-        self._handlers_manager.on_startup(transport)
+        self._handlers_manager.init(transport)
         print("Connection established")
 
     def datagram_received(self, data: bytes, addr: PacketAddr) -> None:

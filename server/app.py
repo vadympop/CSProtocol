@@ -13,7 +13,7 @@ class CSProtocol(DatagramProtocol):
 
     def connection_made(self, transport: DatagramTransport) -> None:
         self.transport = transport
-        self._handlers_manager.on_startup(transport)
+        self._handlers_manager.init(transport)
         Logger.log_debug("Server started")
 
     def datagram_received(self, data: bytes, addr: PacketAddr) -> None:

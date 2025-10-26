@@ -56,16 +56,19 @@ class HandlersManager:
 
         return wrapper
 
-    def on_startup(self, transport: DatagramTransport) -> None:
+    def call_startup(self) -> None:
+        for callback in self._startup_callbacks:
+            callback_kwargs = self._generate_callback_kwargs(callback)
+            callback(**callback_kwargs)
+
+    def init(self, transport: DatagramTransport) -> None:
         self._transport_core = transport
         self._transport = TransportWrapper(transport)
 
         if self.server_mode:
             self.sensors.init_transport(self._transport)
 
-        for callback in self._startup_callbacks:
-            callback_kwargs = self._generate_callback_kwargs(callback)
-            callback(**callback_kwargs)
+        self.call_startup()
 
     def _generate_callback_kwargs(self, func: Callable, **kwargs) -> dict[str, Any]:
         middleware_kwargs = {"transport": self._transport, "storage": self.storage, **kwargs}
