@@ -10,7 +10,7 @@ from shared.handlers.types import PacketAddr
 from shared.logger import Logger
 from shared.transport.manager import TransportWrapper
 
-manager = HandlersManager()
+manager = HandlersManager(server_mode=False)
 
 
 async def send_data(transport: TransportWrapper, storage: dict[str, Any]) -> None:
@@ -19,11 +19,12 @@ async def send_data(transport: TransportWrapper, storage: dict[str, Any]) -> Non
     token: int = storage["token"]
 
     while True:
-        generated_payload = {
-            x[0]: generate_sensor_value(*x[1:]) for x in sensor_conf["fields"]
-        }
-        transport.sendto(pkt.SensorDataPkt(token=token, payload=generated_payload), server_addr)
-        storage["data_sent_at"] = time.time()
+        if token is not None:
+            generated_payload = {
+                x[0]: generate_sensor_value(*x[1:]) for x in sensor_conf["fields"]
+            }
+            transport.sendto(pkt.SensorDataPkt(token=token, payload=generated_payload), server_addr)
+            storage["data_sent_at"] = time.time()
 
         await asyncio.sleep(10)
 
@@ -51,9 +52,6 @@ def on_startup(transport: TransportWrapper, storage: dict[str, Any]) -> None:
         server_addr
     )
 
-    asyncio.create_task(send_data(transport, storage))
-    asyncio.create_task(check_data_ack(transport, storage))
-
 
 @manager.receive(PacketCode.INVALID_CRC)
 def handle_invalid_crc(packet: pkt.Packet, transport: TransportWrapper) -> None:
@@ -68,9 +66,12 @@ def handle_data_ack(packet: pkt.Packet, storage: dict[str, Any]) -> None:
 
 
 @manager.receive(PacketCode.REGISTRATION_ACK)
-def handle_registration_ack(packet: pkt.RegistrationAckPkt, storage: dict[str, Any]) -> None:
+def handle_registration_ack(packet: pkt.RegistrationAckPkt, transport: TransportWrapper, storage: dict[str, Any]) -> None:
     storage["token"] = packet.token
     Logger.log_debug(f"Token was received - {packet.token}")
+
+    asyncio.create_task(send_data(transport, storage))
+    asyncio.create_task(check_data_ack(transport, storage))
 
 
 @manager.receive(PacketCode.CHECK_ALIVE)
