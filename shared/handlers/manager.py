@@ -4,6 +4,7 @@ from typing import Callable, Dict, Any
 
 from shared.codes import PacketCode
 from shared.handlers.types import CallbackType, StartupCallbackType, PacketAddr
+from shared.handlers.utils import get_handler_params
 from shared.middlewares.manager import MiddlewareManager
 from shared.packet import Packet
 from shared.sensors import SensorManager
@@ -62,26 +63,29 @@ class HandlersManager:
         if self.server_mode:
             self.sensors.init_transport(self._transport)
 
-        callback_kwargs = self._generate_callback_kwargs()
         for callback in self._startup_callbacks:
+            callback_kwargs = self._generate_callback_kwargs(callback)
             callback(**callback_kwargs)
 
-    def _generate_callback_kwargs(self, **kwargs) -> dict[str, Any]:
+    def _generate_callback_kwargs(self, func: Callable, **kwargs) -> dict[str, Any]:
         middleware_kwargs = {"transport": self._transport, "storage": self.storage, **kwargs}
         if self.server_mode:
             middleware_kwargs |= {"sensors": self.sensors}
 
-        return middleware_kwargs
+        func_params = get_handler_params(func)
+        filtered_kwargs = {k: v for k, v in middleware_kwargs.items() if k in func_params}
+
+        return filtered_kwargs
 
     def process(self, data: bytes, addr: PacketAddr) -> None:
         if self.server_mode:
             self.sensors.update(addr)
 
         packet = Packet.from_any_payload(data)
-        middleware_kwargs = self._generate_callback_kwargs(addr=addr)
         found_handlers = self._callbacks.get(packet.code, [])
 
         for handler in found_handlers:
+            middleware_kwargs = self._generate_callback_kwargs(func=handler, addr=addr)
             middleware = MiddlewareManager.wrap_middlewares(
                 self.middlewares.collect_middlewares(packet.code, True),
                 handler
