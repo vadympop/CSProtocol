@@ -1,8 +1,11 @@
 import asyncio
 
-from server.server import CSProtocol
+from server.app import CSProtocol
+from shared.logger import Logger
 from .handlers import manager as handlers_manager
 
+
+Logger.set_config(debug=True)
 
 async def main() -> None:
     loop = asyncio.get_running_loop()
@@ -10,7 +13,7 @@ async def main() -> None:
 
     transport, protocol = await loop.create_datagram_endpoint(
         lambda: CSProtocol(handlers_manager, on_connection_lost),
-        remote_addr=('127.0.0.1', 9999)
+        local_addr=('127.0.0.1', 5000)
     )
 
     try:

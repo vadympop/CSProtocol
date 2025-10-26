@@ -1,13 +1,13 @@
 import zlib
 import ujson as json
 
-from asyncio import DatagramTransport
 from typing import Any
 
 from shared.handlers.types import PacketAddr, CallbackType
 from shared.logger import Logger
 from shared.packet import Packet, InvalidTokenPkt, InvalidCrcPkt
 from shared.sensors import SensorManager
+from shared.transport.manager import TransportWrapper
 
 
 def check_token(
@@ -16,11 +16,11 @@ def check_token(
     data: dict[str, Any]
 ):
     sensors: SensorManager = data["sensors"]
-    transport: DatagramTransport = data["transport"]
+    transport: TransportWrapper = data["transport"]
     addr: PacketAddr = data["addr"]
 
     if sensors[addr].token != packet.token:
-        transport.sendto(InvalidTokenPkt().to_bytes(), addr)
+        transport.sendto(InvalidTokenPkt(), addr)
         Logger.log_debug(f"Invalid token from {sensors.get_sensor_id(addr)}")
         return
 
@@ -32,7 +32,7 @@ def check_crc(
     packet: Packet,
     data: dict[str, Any]
 ):
-    transport: DatagramTransport = data["transport"]
+    transport: TransportWrapper = data["transport"]
     addr: PacketAddr = data["addr"]
     sensors: SensorManager = data["sensors"]
 
@@ -41,8 +41,8 @@ def check_crc(
     dict_packet.pop("crc")
 
     recalculated_crc = zlib.crc32(json.dumps(dict_packet, separators=(",", ":")).encode("utf-8")) & 0xFFFFFFFF
-    if not recv_crc == recalculated_crc:
-        transport.sendto(InvalidCrcPkt().to_bytes(), addr)
+    if recv_crc != recalculated_crc:
+        transport.sendto(InvalidCrcPkt(), addr)
         Logger.invalid_data(sensors.get_sensor_id(addr))
 
         return

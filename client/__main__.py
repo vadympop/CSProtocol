@@ -1,7 +1,8 @@
 import asyncio
 from asyncio import DatagramTransport
 
-from .server import SensorProtocol
+from shared.logger import Logger
+from .app import SensorProtocol
 from .handlers import manager as main_handlers_manager
 
 
@@ -16,36 +17,38 @@ SENSORS_CONFIGURATION = [
             ("pressure", 800, 1100, 2),
         ]
     },
-    {
-        "port": 5002,
-        "sensor_type": "WIND",
-        "fields": [
-            ("wind_speed", 0, 50, 1),
-            ("wind_gust", 0, 70, 1),
-            ("wind_direction", 0, 359, 0),
-            ("turbulence", 0, 1, 1),
-        ]
-    },
-    {
-        "port": 5003,
-        "sensor_type": "RAIN",
-        "fields": [
-            ("rainfall", 0, 500, 1),
-            ("soil_moisture", 0, 100, 1),
-            ("flood_risk", 0, 3, 0),
-            ("rain_duration", 0, 60, 0),
-        ]
-    },
-    {
-        "port": 5004,
-        "sensor_type": "AIR",
-        "fields": [
-            ("co2", 300, 5000, 1),
-            ("ozone", 0, 500, 1),
-            ("air_quality_index", 0, 500, 0)
-        ]
-    }
+    # {
+    #     "port": 5002,
+    #     "sensor_type": "WIND",
+    #     "fields": [
+    #         ("wind_speed", 0, 50, 1),
+    #         ("wind_gust", 0, 70, 1),
+    #         ("wind_direction", 0, 359, 0),
+    #         ("turbulence", 0, 1, 1),
+    #     ]
+    # },
+    # {
+    #     "port": 5003,
+    #     "sensor_type": "RAIN",
+    #     "fields": [
+    #         ("rainfall", 0, 500, 1),
+    #         ("soil_moisture", 0, 100, 1),
+    #         ("flood_risk", 0, 3, 0),
+    #         ("rain_duration", 0, 60, 0),
+    #     ]
+    # },
+    # {
+    #     "port": 5004,
+    #     "sensor_type": "AIR",
+    #     "fields": [
+    #         ("co2", 300, 5000, 1),
+    #         ("ozone", 0, 500, 1),
+    #         ("air_quality_index", 0, 500, 0)
+    #     ]
+    # }
 ]
+
+Logger.set_config(debug=True)
 
 async def main() -> None:
     loop = asyncio.get_running_loop()
@@ -56,7 +59,7 @@ async def main() -> None:
         manager = main_handlers_manager.copy(storage={"configuration": conf, "server_addr": ("127.0.0.1", 5000)})
         transport, protocol = await loop.create_datagram_endpoint(
             lambda: SensorProtocol(manager, on_connection_lost),
-            remote_addr=('127.0.0.1', conf["port"])
+            local_addr=('127.0.0.1', conf["port"])
         )
         servers.append(transport)
 

@@ -39,7 +39,7 @@ class MiddlewareManager:
         middlewares: Sequence[MiddlewareType], final_handler: CallbackType
     ) -> NextMiddlewareType:
         @functools.wraps(final_handler)
-        def handler_wrapper(packet: Packet, **kwargs) -> Any:
+        def handler_wrapper(packet: Packet, kwargs: Dict[str, Any]) -> Any:
             return final_handler(packet, **kwargs)
 
         middleware = handler_wrapper

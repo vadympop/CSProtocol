@@ -38,7 +38,7 @@ class Packet(ABC):
 
     timestamp: datetime.datetime = field(default_factory=datetime.datetime.now)
     code: PacketCode = field(init=False)
-    crc: int = field(init=False)
+    crc: int = None
 
     def __post_init__(self):
         if not hasattr(self, "__CODE__") or self.__CODE__ == PacketCode.GLOBAL:
@@ -47,14 +47,17 @@ class Packet(ABC):
         self.code = self.__CODE__
 
     def to_dict(self) -> dict[str, Any]:
-        return asdict(self)
-
-    def to_bytes(self) -> bytes:
-        data_in_dict = self.to_dict()
+        data_in_dict = asdict(self)
         data_in_dict["code"] = int(data_in_dict["code"])
         data_in_dict["timestamp"] = data_in_dict["timestamp"].timestamp()
 
-        data_in_dict.pop("crc", None)
+        return data_in_dict
+
+    def to_bytes(self) -> bytes:
+        data_in_dict = self.to_dict()
+
+        data_in_dict.pop("crc")
+        print(data_in_dict)
         json_bytes = json.dumps(data_in_dict, separators=(",", ":")).encode("utf-8")
 
         self.crc = zlib.crc32(json_bytes) & 0xFFFFFFFF
@@ -72,7 +75,7 @@ class Packet(ABC):
             return False
 
         with contextlib.suppress(ValueError):
-            PacketCode(data["code"])
+            PacketCode(str(data["code"]))
             cls.parse_timestamp(data)
             return True
 
@@ -81,7 +84,7 @@ class Packet(ABC):
     @classmethod
     @validate_payload
     def from_payload(cls: Type["Packet"], payload: dict) -> "Packet":
-        return cls(timestamp=cls.parse_timestamp(payload))
+        return cls(timestamp=cls.parse_timestamp(payload), crc=payload["crc"])
 
     @staticmethod
     def from_any_payload(data: bytes | str) -> "Packet":
@@ -96,7 +99,7 @@ class Packet(ABC):
         except ValueError:
             raise ValueError("Invalid JSON was provided")
 
-        code = PacketCode(parsed_data["code"])
+        code = PacketCode(str(parsed_data["code"]))
         packet_cls = _PACKET_REGISTRY.get(code)
         if not packet_cls:
             raise ValueError(f"Unsupported packet code: {code.name}")
@@ -116,6 +119,7 @@ class SensorRegistrationPkt(Packet):
     def from_payload(cls: Type["SensorRegistrationPkt"], payload: dict) -> "SensorRegistrationPkt":
         return cls(
             sensor_type=payload["sensor_type"],
+            crc=payload["crc"],
             timestamp=cls.parse_timestamp(payload),
         )
 
@@ -134,6 +138,7 @@ class SensorDataPkt(Packet):
         return cls(
             payload=payload["payload"],
             token=payload["token"],
+            crc=payload["crc"],
             timestamp=cls.parse_timestamp(payload),
         )
 
@@ -156,6 +161,7 @@ class RegistrationAckPkt(Packet):
     def from_payload(cls: Type["RegistrationAckPkt"], payload: dict) -> "RegistrationAckPkt":
         return cls(
             token=payload["token"],
+            crc=payload["crc"],
             timestamp=cls.parse_timestamp(payload),
         )
 
@@ -178,6 +184,7 @@ class CheckAliveResponsePkt(Packet):
     def from_payload(cls: Type["CheckAliveResponsePkt"], payload: dict) -> "CheckAliveResponsePkt":
         return cls(
             token=payload["token"],
+            crc=payload["crc"],
             timestamp=cls.parse_timestamp(payload),
         )
 
