@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from typing import Dict
 
 from shared.handlers.types import PacketAddr
+from shared.logger import Logger
 from shared.packet import CheckAlivePkt
 from shared.transport.manager import TransportWrapper
 
@@ -83,7 +84,7 @@ class SensorManager:
 
     async def disconnected_task(self, sensor: SensorInfo) -> None:
         while True:
-            print(f"DISCONNECTED {sensor.sensor_type}")
+            Logger.disconnected(sensor.sensor_type)
             await asyncio.sleep(10)
 
     async def repeated_check_alive_task(self, sensor: SensorInfo) -> None:
@@ -109,6 +110,11 @@ class SensorManager:
 
         sensor.check_alive_task.cancel()
         sensor.disconnected_task.cancel()
+
+    def get_sensor_id(self, addr: PacketAddr) -> str:
+        sensor_info = self._sensors[addr]
+
+        return sensor_info.sensor_type
 
     def all_sensors(self) -> list[SensorInfo]:
         return list(self._sensors.values())
