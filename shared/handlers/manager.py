@@ -7,15 +7,19 @@ from shared.handlers.types import CallbackType, StartupCallbackType, PacketAddr
 from shared.middlewares.manager import MiddlewareManager
 from shared.packet import Packet
 from shared.sensors import SensorManager
+from shared.transport.manager import TransportWrapper
 
 
 class HandlersManager:
     def __init__(self, server_mode: bool = True, initial_storage: dict = None) -> None:
         self._callbacks: Dict[PacketCode, list[CallbackType]] = defaultdict(list)
         self._startup_callbacks: list[StartupCallbackType] = []
-        self._transport: DatagramTransport | None = None
+        self._transport_core: DatagramTransport | None = None
+        self._transport: TransportWrapper | None = None
         self.server_mode = server_mode
         self.storage: dict[str, Any] = initial_storage or {}
+
+        self.last_packet: Packet | None = None
 
         self.middlewares: MiddlewareManager = MiddlewareManager()
         self.sensors: SensorManager | None = SensorManager() if server_mode else None
@@ -41,9 +45,11 @@ class HandlersManager:
         return wrapper
 
     def on_startup(self, transport: DatagramTransport) -> None:
-        self._transport = transport
+        self._transport_core = transport
+        self._transport = TransportWrapper(transport)
+
         if self.server_mode:
-            self.sensors.init_transport(transport)
+            self.sensors.init_transport(self._transport)
 
         for callback in self._startup_callbacks:
             callback(transport)

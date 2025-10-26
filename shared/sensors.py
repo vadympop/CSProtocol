@@ -1,12 +1,13 @@
 import asyncio
 import time
 
-from asyncio import DatagramTransport, Task
+from asyncio import Task
 from dataclasses import dataclass
 from typing import Dict
 
 from shared.handlers.types import PacketAddr
 from shared.packet import CheckAlivePkt
+from shared.transport.manager import TransportWrapper
 
 
 @dataclass
@@ -26,9 +27,9 @@ class SensorManager:
     def __init__(self, timeout: float = 15.0) -> None:
         self._sensors: Dict[PacketAddr, SensorInfo] = {}
         self.timeout = timeout
-        self._transport: DatagramTransport | None = None
+        self._transport: TransportWrapper | None = None
 
-    def init_transport(self, transport: DatagramTransport) -> None:
+    def init_transport(self, transport: TransportWrapper) -> None:
         self._transport = transport
 
     def register(self, addr: PacketAddr, sensor_type: str, token: int) -> None:
@@ -75,7 +76,7 @@ class SensorManager:
                 self.start_disconnected_tasks(s)
 
     def send_check_alive(self, sensor: SensorInfo, first: bool = False) -> None:
-        self._transport.sendto(CheckAlivePkt().to_bytes(), sensor.addr)
+        self._transport.sendto(CheckAlivePkt(), sensor.addr)
 
         if first:
             self._sensors[sensor.addr].first_check_alive_time = time.time()
