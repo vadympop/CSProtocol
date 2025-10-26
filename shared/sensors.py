@@ -34,27 +34,27 @@ class SensorManager:
         self._transport = transport
 
     def register(self, addr: PacketAddr, sensor_type: str, token: int) -> None:
-        if addr not in self._sensors:
-            print(f"[+] Registered sensor {sensor_type} @ {addr}")
-
         found_sensor = next((x for x in self._sensors.values() if x.sensor_type == sensor_type), None)
         if found_sensor:
             print("Sensor {sensor_type} already registered")
             return
 
+        Logger.log_debug(f"Registering sensor {sensor_type} @ {addr}")
         self._sensors[addr] = SensorInfo(addr, sensor_type, time.time(), token, True)
 
     def unregister(self, addr: PacketAddr) -> None:
         self._sensors[addr].check_alive_task.cancel()
         self._sensors[addr].disconnected_task.cancel()
 
-        self._sensors.pop(addr)
+        sensor = self._sensors.pop(addr)
+
+        Logger.log_debug(f"UNregister sensor {sensor.sensor_type} @ {addr}")
 
     def update(self, addr: PacketAddr) -> None:
         if addr in self._sensors:
             self._sensors[addr].last_seen = time.time()
         else:
-            print(f"[?] Unregistered sensor sent data from {addr}")
+            Logger.log_debug(f"Unregistered sensor sent data from {addr}")
 
     def mark_inactive(self) -> None:
         now = time.time()
@@ -67,7 +67,7 @@ class SensorManager:
                 # If response doesnt come start tasks:
                 # 1. Every 10sec print DISCONNECTED msg
                 # 2. Every 5sec send check alive packet max 10 attempts
-                print(f"[x] Sensor {s.addr} timed out (inactive)")
+                Logger.log_debug(f"Sensor {s.sensor_type} timed out(first 15sec)")
 
     def mark_disconnected(self) -> None:
         now = time.time()
