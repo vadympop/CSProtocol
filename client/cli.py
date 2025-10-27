@@ -8,7 +8,7 @@ from typing import Callable, Iterable
 
 from shared import packet as pkt
 from shared.cli.base import BaseCLI
-
+from shared.transport import should_force_invalid_crc
 
 HELP_MSG = (
     "Available commands:\n"
@@ -122,6 +122,7 @@ class ClientCLI(BaseCLI):
         transport.sendto(
             pkt.SensorDataPkt(token=token, payload=payload, is_low_battery=is_low_battery),
             storage["server_addr"],
+            force_invalid_crc=should_force_invalid_crc(storage)
         )
 
         self.cprint("Packet sent successfully")
@@ -223,4 +224,5 @@ class ClientCLI(BaseCLI):
         if storage.get("break_crc_once"):
             storage["break_crc_once"] = False
             return True
+
         return False

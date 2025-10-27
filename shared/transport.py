@@ -1,4 +1,5 @@
 import time
+import ujson as json
 
 from asyncio import DatagramTransport
 from typing import Any
@@ -9,14 +10,29 @@ from shared.logger import Logger
 from shared.packet import Packet
 
 
+def should_force_invalid_crc(storage: dict[str, Any]) -> bool:
+    if storage.get("break_crc_once"):
+        storage["break_crc_once"] = False
+        return True
+
+    return False
+
+
 class TransportWrapper:
     def __init__(self, transport: DatagramTransport) -> None:
         self._transport: DatagramTransport = transport
         self._last_packets: dict[PacketCode, dict[str, Any]] = {}
 
-    def sendto(self, packet: Packet, addr: PacketAddr) -> None:
+    def sendto(self, packet: Packet, addr: PacketAddr, *, force_invalid_crc: bool = False) -> None:
         Logger.log_debug(f"Packet {packet.to_dict()} sent to {addr}")
-        self._transport.sendto(packet.to_bytes(), addr)
+        packet_bytes = packet.to_bytes()
+
+        if force_invalid_crc:
+            payload = json.loads(packet_bytes.decode("utf-8"))
+            payload["crc"] = (payload["crc"] + 1) & 0xFFFFFFFF
+            packet_bytes = json.dumps(payload, separators=(",", ":")).encode("utf-8")
+
+        self._transport.sendto(packet_bytes, addr)
         self._last_packets[packet.code] = {"packet": packet, "addr": addr, "time": time.time()}
 
     def get_last_overall(self) -> tuple[Packet, PacketAddr]:

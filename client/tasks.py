@@ -5,7 +5,7 @@ from shared import packet as pkt
 from shared.codes import PacketCode
 from shared.handlers.types import PacketAddr
 from shared.logger import Logger
-from shared.transport import TransportWrapper
+from shared.transport import TransportWrapper, should_force_invalid_crc
 
 from .utils import generate_sensor_value
 
@@ -28,7 +28,11 @@ def send_data(transport: TransportWrapper, storage: dict[str, Any]) -> None:
     storage["data_sent_at"] = time.time()
     storage["is_data_ack"] = False
 
-    transport.sendto(pkt.SensorDataPkt(token=token, payload=generated_payload), server_addr)
+    transport.sendto(
+        pkt.SensorDataPkt(token=token, payload=generated_payload),
+        server_addr,
+        force_invalid_crc=should_force_invalid_crc(storage),
+    )
 
 
 def check_data_ack(transport: TransportWrapper, storage: dict[str, Any]) -> None:
