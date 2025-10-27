@@ -24,4 +24,5 @@ class CSProtocol(DatagramProtocol):
 
     def connection_lost(self, exc: Exception | None) -> None:
         Logger.log_debug("Server stopped")
-        self.on_connection_lost.set_result(True)
+        if not self.on_connection_lost.done():
+            self.on_connection_lost.set_result(True)
