@@ -11,17 +11,24 @@ from shared.transport import TransportWrapper
 
 
 def send_data(transport: TransportWrapper, storage: dict[str, Any]) -> None:
+    if not storage["auto_sending"]:
+        return
+
     server_addr: PacketAddr = storage["server_addr"]
     sensor_conf: dict = storage["configuration"]
-    token: int = storage["token"]
+    token: int | None = storage["token"]
 
-    if token is not None:
-        generated_payload = {
-            x[0]: generate_sensor_value(*x[1:]) for x in sensor_conf["fields"]
-        }
-        transport.sendto(pkt.SensorDataPkt(token=token, payload=generated_payload), server_addr)
-        storage["data_sent_at"] = time.time()
-        storage["is_data_ack"] = False
+    if token is None:
+        return
+
+    generated_payload = {
+        x[0]: generate_sensor_value(*x[1:]) for x in sensor_conf["fields"]
+    }
+
+    storage["data_sent_at"] = time.time()
+    storage["is_data_ack"] = False
+
+    transport.sendto(pkt.SensorDataPkt(token=token, payload=generated_payload), server_addr)
 
 
 def check_data_ack(transport: TransportWrapper, storage: dict[str, Any]) -> None:

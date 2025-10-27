@@ -104,9 +104,6 @@ async def main() -> None:
         storage_defaults = {
             "configuration": conf,
             "server_addr": server_addr,
-            "auto_sending": True,
-            "break_crc_once": False,
-            "check_alive_test": None,
         }
         manager = main_handlers_manager.copy(storage=storage_defaults)
 

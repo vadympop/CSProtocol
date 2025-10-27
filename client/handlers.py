@@ -10,13 +10,23 @@ from shared.transport import TransportWrapper
 
 from .tasks import send_data, check_data_ack
 
-manager = HandlersManager(server_mode=False)
+
+manager = HandlersManager(
+    initial_storage={
+        "is_data_ack": False,
+        "data_sent_at": None,
+        "token": None,
+        "auto_sending": True,
+        "break_crc_once": False,
+        "check_alive_test": None
+    },
+    server_mode=False
+)
 
 
 @manager.startup()
 def on_startup(transport: TransportWrapper, storage: dict[str, Any]) -> None:
-    storage["is_data_ack"] = False
-    storage["data_sent_at"] = None
+    storage["transport"] = transport  # For sending custom packets in cli
 
     server_addr: PacketAddr = storage["server_addr"]
     sensor_conf: dict = storage["configuration"]
@@ -56,6 +66,20 @@ def handle_check_alive(
         transport: TransportWrapper,
         storage: dict[str, Any]
 ) -> None:
+    test_state = storage.get("check_alive_test")
+    if test_state:
+        test_state["attempts"] = test_state.get("attempts", 0) + 1
+        if test_state["attempts"] < 3:
+            Logger.log_debug("CHECK_ALIVE ignored due to active test mode")
+            return
+
+        Logger.log_debug("CHECK_ALIVE test satisfied, responding now")
+        storage["check_alive_test"] = None
+
+    if storage.get("token") is None:
+        Logger.log_debug("Ignoring CHECK_ALIVE before registration is complete")
+        return
+
     transport.sendto(pkt.CheckAliveResponsePkt(token=storage["token"]), addr)
 
 

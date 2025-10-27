@@ -22,6 +22,7 @@ HELP_MSG = (
 )
 WELCOME_MSG = "Client CLI started. Type 'help' to list commands."
 
+
 @dataclass
 class SensorRuntime:
     identifier: str
@@ -121,7 +122,6 @@ class ClientCLI(BaseCLI):
         transport.sendto(
             pkt.SensorDataPkt(token=token, payload=payload, is_low_battery=is_low_battery),
             storage["server_addr"],
-            force_invalid_crc=self._consume_crc_flag(storage),
         )
 
         self.cprint("Packet sent successfully")
