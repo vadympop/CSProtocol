@@ -6,9 +6,10 @@ from typing import Dict
 from shared.handlers.types import PacketAddr
 from shared.logger import Logger
 from shared.packet import CheckAlivePkt
-from shared.sensors.tasks import SensorsTasksManager
-from shared.tasks import TasksManager
-from shared.transport.manager import TransportWrapper
+from shared.tasks import BackgroundTasksManager
+from shared.transport import TransportWrapper
+
+from .tasks import SensorsTasksManager
 
 
 @dataclass
@@ -23,7 +24,7 @@ class SensorInfo:
 
 
 class SensorManager:
-    def __init__(self, background_tasks: TasksManager) -> None:
+    def __init__(self, background_tasks: BackgroundTasksManager) -> None:
         self.tasks = SensorsTasksManager(self, background_tasks)
 
         self._sensors: Dict[PacketAddr, SensorInfo] = {}

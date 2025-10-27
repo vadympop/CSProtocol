@@ -3,13 +3,14 @@ from collections import defaultdict
 from typing import Callable, Dict, Any
 
 from shared.codes import PacketCode
-from shared.handlers.types import CallbackType, StartupCallbackType, PacketAddr
-from shared.handlers.utils import get_handler_params
-from shared.middlewares.manager import MiddlewareManager
+from shared.middlewares import MiddlewareManager
 from shared.packet import Packet
 from shared.sensors import SensorManager
-from shared.tasks import TasksManager
-from shared.transport.manager import TransportWrapper
+from shared.tasks import BackgroundTasksManager
+from shared.transport import TransportWrapper
+
+from .utils import get_handler_params
+from .types import CallbackType, StartupCallbackType, PacketAddr
 
 
 class HandlersManager:
@@ -21,7 +22,7 @@ class HandlersManager:
         self.server_mode = server_mode
         self.storage: dict[str, Any] = initial_storage or {}
 
-        self.background_tasks: TasksManager = TasksManager()
+        self.background_tasks: BackgroundTasksManager = BackgroundTasksManager()
         self.middlewares: MiddlewareManager = MiddlewareManager()
         self.sensors: SensorManager | None = SensorManager(self.background_tasks) if server_mode else None
 

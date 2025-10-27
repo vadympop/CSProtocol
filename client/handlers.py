@@ -1,13 +1,14 @@
 from typing import Any
 
-from client.tasks import send_data, check_data_ack
 from shared import packet as pkt
 from shared.codes import PacketCode
-from shared.handlers.manager import HandlersManager
+from shared.handlers import HandlersManager
 from shared.handlers.types import PacketAddr
 from shared.logger import Logger
-from shared.tasks import TasksManager, BackgroundTask
-from shared.transport.manager import TransportWrapper
+from shared.tasks import BackgroundTasksManager, BackgroundTask
+from shared.transport import TransportWrapper
+
+from .tasks import send_data, check_data_ack
 
 manager = HandlersManager(server_mode=False)
 
@@ -37,7 +38,7 @@ def handle_registration_ack(
         packet: pkt.RegistrationAckPkt,
         transport: TransportWrapper,
         storage: dict[str, Any],
-        background_tasks: TasksManager
+        background_tasks: BackgroundTasksManager
 ) -> None:
     storage["token"] = packet.token
     Logger.log_debug(f"Token was received - {packet.token}")
@@ -65,7 +66,7 @@ def handle_invalid_crc(packet: pkt.Packet, transport: TransportWrapper) -> None:
 
 
 @manager.receive(PacketCode.INVALID_TOKEN)
-def handle_invalid_token(packet: pkt.Packet, background_tasks: TasksManager, storage: dict[str, Any]) -> None:
+def handle_invalid_token(packet: pkt.Packet, background_tasks: BackgroundTasksManager, storage: dict[str, Any]) -> None:
     storage["token"] = None
 
     # Cancel tasks

@@ -3,16 +3,16 @@ import time
 from typing import TYPE_CHECKING
 
 from shared.logger import Logger
-from shared.tasks import BackgroundTask, TasksManager
+from shared.tasks import BackgroundTask, BackgroundTasksManager
 
 if TYPE_CHECKING:
     from .manager import SensorManager, SensorInfo
 
 
 class SensorsTasksManager:
-    def __init__(self, manager: "SensorManager", background_tasks: TasksManager):
+    def __init__(self, manager: "SensorManager", background_tasks: BackgroundTasksManager):
         self.manager: "SensorManager" = manager
-        self.background_tasks: TasksManager = background_tasks
+        self.background_tasks: BackgroundTasksManager = background_tasks
 
     def mark_inactive_task(self) -> None:
         now = time.time()

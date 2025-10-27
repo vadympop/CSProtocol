@@ -1,6 +1,6 @@
 from asyncio import DatagramProtocol, DatagramTransport, Future
 
-from shared.handlers.manager import HandlersManager
+from shared.handlers import HandlersManager
 from shared.handlers.types import PacketAddr
 
 

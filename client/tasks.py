@@ -7,7 +7,7 @@ from shared import packet as pkt
 from shared.codes import PacketCode
 from shared.handlers.types import PacketAddr
 from shared.logger import Logger
-from shared.transport.manager import TransportWrapper
+from shared.transport import TransportWrapper
 
 
 def send_data(transport: TransportWrapper, storage: dict[str, Any]) -> None:

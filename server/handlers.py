@@ -1,10 +1,10 @@
 from shared import packet as pkt
 from shared.codes import PacketCode
-from shared.handlers.manager import HandlersManager
+from shared.handlers import HandlersManager
 from shared.handlers.types import PacketAddr
 from shared.logger import Logger
 from shared.sensors import SensorManager
-from shared.transport.manager import TransportWrapper
+from shared.transport import TransportWrapper
 
 from .utils import generate_sensor_token
 from .middlewares import check_token, check_crc, check_unregistered_sensors

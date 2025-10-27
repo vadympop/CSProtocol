@@ -7,7 +7,7 @@ from shared.handlers.types import PacketAddr, CallbackType
 from shared.logger import Logger
 from shared.packet import Packet, InvalidTokenPkt, InvalidCrcPkt
 from shared.sensors import SensorManager
-from shared.transport.manager import TransportWrapper
+from shared.transport import TransportWrapper
 
 
 def check_token(

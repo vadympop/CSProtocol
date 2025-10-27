@@ -17,7 +17,7 @@ class BackgroundTask:
         return asyncio.create_task(self._wrapped_task(**kwargs))
 
 
-class TasksManager:
+class BackgroundTasksManager:
     def __init__(self) -> None:
         self._tasks: dict[str, Task] = {}
 
