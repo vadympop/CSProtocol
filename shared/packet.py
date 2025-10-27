@@ -130,6 +130,7 @@ class SensorDataPkt(Packet):
 
     payload: dict
     token: int
+    is_low_battery: bool = False
 
     @classmethod
     @validate_payload
@@ -138,6 +139,7 @@ class SensorDataPkt(Packet):
             payload=payload["payload"],
             token=payload["token"],
             crc=payload["crc"],
+            is_low_battery=payload["is_low_battery"],
             timestamp=cls.parse_timestamp(payload),
         )
 
