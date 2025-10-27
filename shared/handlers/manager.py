@@ -73,7 +73,12 @@ class HandlersManager:
         self.call_startup()
 
     def _generate_callback_kwargs(self, func: Callable, **kwargs) -> dict[str, Any]:
-        middleware_kwargs = {"transport": self._transport, "storage": self.storage, **kwargs}
+        middleware_kwargs = {
+            "transport": self._transport,
+            "storage": self.storage,
+            "background_tasks": self.background_tasks,
+            **kwargs
+        }
         if self.server_mode:
             middleware_kwargs |= {"sensors": self.sensors}
 

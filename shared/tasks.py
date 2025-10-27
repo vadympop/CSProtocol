@@ -34,9 +34,10 @@ class TasksManager:
 
         self._tasks = {}
 
-    def cancel(self, task_id: str) -> None:
-        if task_id not in self._tasks:
-            return
+    def cancel(self, *tasks_id: str) -> None:
+        for x in tasks_id:
+            if x not in self._tasks:
+                continue
 
-        task = self._tasks.pop(task_id)
-        task.cancel()
+            task = self._tasks.pop(x)
+            task.cancel()
