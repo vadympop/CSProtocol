@@ -48,8 +48,8 @@ class ServerCLI(BaseCLI):
         elif cmd == "status":
             self._print_status()
         elif cmd == "skip_ack":
-            self._storage["skip_next_ack"] = True
-            self.cprint("The next DATA_ACK packet will be skipped")
+            self._storage["skip_data_ack_remaining"] = 3
+            self.cprint("The next 3 DATA_ACK packets will be skipped")
         elif cmd == "sensors":
             self._print_sensors()
         elif cmd in {"quit", "exit"}:

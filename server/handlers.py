@@ -11,7 +11,7 @@ from shared.transport import TransportWrapper
 from .utils import generate_sensor_token
 from .middlewares import check_token, check_crc, check_unregistered_sensors
 
-manager = HandlersManager(initial_storage={"skip_next_ack": False})
+manager = HandlersManager(initial_storage={"skip_data_ack_remaining": 0})
 manager.middlewares.register(
     [PacketCode.SENSOR_DATA, PacketCode.CHECK_ALIVE_RESPONSE],
     check_unregistered_sensors
@@ -49,9 +49,11 @@ def device_data_receiving(
         storage: dict[str, Any],
         sensors: SensorManager,
 ) -> None:
-    if storage["skip_next_ack"]:
-        Logger.log_debug("Skipping DATA_ACK as requested")
-        storage["skip_next_ack"] = False
+    if storage["skip_data_ack_remaining"] > 0:
+        storage["skip_data_ack_remaining"] -= 1
+        Logger.log_debug(
+            f"Skipping DATA_ACK as requested ({storage['skip_data_ack_remaining']} remaining)"
+        )
     else:
         transport.sendto(pkt.DataAckPkt(), addr)
 
