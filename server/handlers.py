@@ -1,3 +1,5 @@
+from typing import Any
+
 from shared import packet as pkt
 from shared.codes import PacketCode
 from shared.handlers import HandlersManager
@@ -9,7 +11,7 @@ from shared.transport import TransportWrapper
 from .utils import generate_sensor_token
 from .middlewares import check_token, check_crc, check_unregistered_sensors
 
-manager = HandlersManager()
+manager = HandlersManager(initial_storage={"skip_next_ack": False})
 manager.middlewares.register(
     [PacketCode.SENSOR_DATA, PacketCode.CHECK_ALIVE_RESPONSE],
     check_unregistered_sensors
@@ -44,10 +46,21 @@ def device_data_receiving(
         packet: pkt.SensorDataPkt,
         addr: PacketAddr,
         transport: TransportWrapper,
+        storage: dict[str, Any],
         sensors: SensorManager,
 ) -> None:
-    transport.sendto(pkt.DataAckPkt(), addr)
-    Logger.data_received(sensors.get_sensor_id(addr), packet.timestamp, False, packet.payload)
+    if storage["skip_next_ack"]:
+        Logger.log_debug("Skipping DATA_ACK as requested")
+        storage["skip_next_ack"] = False
+    else:
+        transport.sendto(pkt.DataAckPkt(), addr)
+
+    Logger.data_received(
+        sensors.get_sensor_id(addr),
+        packet.timestamp,
+        packet.is_low_battery,
+        packet.payload,
+    )
 
 
 @manager.receive(PacketCode.CHECK_ALIVE_RESPONSE)
