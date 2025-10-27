@@ -2,7 +2,7 @@ import asyncio
 from asyncio import DatagramTransport
 
 from shared.logger import Logger
-from .app import SensorProtocol
+from shared.protocol import CSProtocol
 from .handlers import manager as main_handlers_manager
 
 
@@ -58,7 +58,7 @@ async def main() -> None:
     for conf in SENSORS_CONFIGURATION:
         manager = main_handlers_manager.copy(storage={"configuration": conf, "server_addr": ("127.0.0.1", 5000)})
         transport, protocol = await loop.create_datagram_endpoint(
-            lambda: SensorProtocol(manager, on_connection_lost),
+            lambda: CSProtocol(manager, on_connection_lost),
             local_addr=('127.0.0.1', conf["port"])
         )
         servers.append(transport)

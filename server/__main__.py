@@ -1,6 +1,6 @@
 import asyncio
 
-from server.app import CSProtocol
+from shared.protocol import CSProtocol
 from shared.logger import Logger
 from .handlers import manager as handlers_manager
 
