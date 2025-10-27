@@ -57,7 +57,6 @@ class Packet(ABC):
         data_in_dict = self.to_dict()
 
         data_in_dict.pop("crc")
-        print(data_in_dict)
         json_bytes = json.dumps(data_in_dict, separators=(",", ":")).encode("utf-8")
 
         self.crc = zlib.crc32(json_bytes) & 0xFFFFFFFF
