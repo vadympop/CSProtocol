@@ -8,6 +8,7 @@ from shared.handlers.utils import get_handler_params
 from shared.middlewares.manager import MiddlewareManager
 from shared.packet import Packet
 from shared.sensors import SensorManager
+from shared.tasks import TasksManager
 from shared.transport.manager import TransportWrapper
 
 
@@ -20,6 +21,7 @@ class HandlersManager:
         self.server_mode = server_mode
         self.storage: dict[str, Any] = initial_storage or {}
 
+        self.background_tasks: TasksManager = TasksManager()
         self.middlewares: MiddlewareManager = MiddlewareManager()
         self.sensors: SensorManager | None = SensorManager() if server_mode else None
 
