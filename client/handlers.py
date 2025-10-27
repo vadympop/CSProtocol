@@ -69,7 +69,7 @@ def handle_check_alive(
     test_state = storage.get("check_alive_test")
     if test_state:
         test_state["attempts"] = test_state.get("attempts", 0) + 1
-        if test_state["attempts"] < 3:
+        if test_state["attempts"] <= 3:
             Logger.log_debug("CHECK_ALIVE ignored due to active test mode")
             return
 

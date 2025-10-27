@@ -1,13 +1,13 @@
 import time
 from typing import Any
 
-from client.utils import generate_sensor_value
-
 from shared import packet as pkt
 from shared.codes import PacketCode
 from shared.handlers.types import PacketAddr
 from shared.logger import Logger
 from shared.transport import TransportWrapper
+
+from .utils import generate_sensor_value
 
 
 def send_data(transport: TransportWrapper, storage: dict[str, Any]) -> None:
