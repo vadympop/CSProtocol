@@ -1,13 +1,13 @@
-import asyncio
 import time
 
-from asyncio import Task
 from dataclasses import dataclass
 from typing import Dict
 
 from shared.handlers.types import PacketAddr
 from shared.logger import Logger
 from shared.packet import CheckAlivePkt
+from shared.sensors.tasks import SensorsTasksManager
+from shared.tasks import TasksManager
 from shared.transport.manager import TransportWrapper
 
 
@@ -20,14 +20,13 @@ class SensorInfo:
     first_check_alive_time: float | None = None
     alive: bool = True
     disconnected: bool = False
-    disconnected_task: Task | None = None
-    check_alive_task: Task | None = None
 
 
 class SensorManager:
-    def __init__(self, timeout: float = 15.0) -> None:
+    def __init__(self, background_tasks: TasksManager) -> None:
+        self.tasks = SensorsTasksManager(self, background_tasks)
+
         self._sensors: Dict[PacketAddr, SensorInfo] = {}
-        self.timeout = timeout
         self._transport: TransportWrapper | None = None
 
     def init_transport(self, transport: TransportWrapper) -> None:
@@ -43,10 +42,8 @@ class SensorManager:
         self._sensors[addr] = SensorInfo(addr, sensor_type, time.time(), token, True)
 
     def unregister(self, addr: PacketAddr) -> None:
-        self._sensors[addr].check_alive_task.cancel()
-        self._sensors[addr].disconnected_task.cancel()
-
         sensor = self._sensors.pop(addr)
+        self.tasks.cancel_sensor_tasks(sensor)
 
         Logger.log_debug(f"UNregister sensor {sensor.sensor_type} @ {addr}")
 
@@ -56,51 +53,11 @@ class SensorManager:
         else:
             Logger.log_debug(f"Unregistered sensor sent data from {addr}")
 
-    def mark_inactive(self) -> None:
-        now = time.time()
-        for s in self._sensors.values():
-            if s.alive and now - s.last_seen > self.timeout:
-                s.alive = False
-
-                self.send_check_alive(s, True)
-                # Send first check alive packet and wait for response 1sec
-                # If response doesnt come start tasks:
-                # 1. Every 10sec print DISCONNECTED msg
-                # 2. Every 5sec send check alive packet max 10 attempts
-                Logger.log_debug(f"Sensor {s.sensor_type} timed out(first 15sec)")
-
-    def mark_disconnected(self) -> None:
-        now = time.time()
-        for s in self._sensors.values():
-            if not s.alive and not s.disconnected and now - s.first_check_alive_time > 1:
-                s.disconnected = True
-                self.start_disconnected_tasks(s)
-
     def send_check_alive(self, sensor: SensorInfo, first: bool = False) -> None:
         self._transport.sendto(CheckAlivePkt(), sensor.addr)
 
         if first:
             self._sensors[sensor.addr].first_check_alive_time = time.time()
-
-    async def disconnected_task(self, sensor: SensorInfo) -> None:
-        while True:
-            Logger.disconnected(sensor.sensor_type)
-            await asyncio.sleep(10)
-
-    async def repeated_check_alive_task(self, sensor: SensorInfo) -> None:
-        attempts = 0
-        while attempts < 10:
-            self.send_check_alive(sensor)
-            attempts += 1
-
-            await asyncio.sleep(5)
-
-        # Unregister sensor if sensor doesnt reply and task wasnt cancelled earlier
-        self.unregister(sensor.addr)
-
-    def start_disconnected_tasks(self, sensor: SensorInfo) -> None:
-        sensor.disconnected_task = asyncio.create_task(self.disconnected_task(sensor))
-        sensor.check_alive_task = asyncio.create_task(self.repeated_check_alive_task(sensor))
 
     def mark_alive(self, addr: PacketAddr) -> None:
         sensor = self._sensors[addr]
@@ -108,8 +65,7 @@ class SensorManager:
         sensor.alive = True
         sensor.disconnected = False
 
-        sensor.check_alive_task.cancel()
-        sensor.disconnected_task.cancel()
+        self.tasks.cancel_sensor_tasks(sensor)
 
     def get_sensor_id(self, addr: PacketAddr) -> str:
         sensor_info = self._sensors[addr]

@@ -21,6 +21,11 @@ manager.middlewares.register(
 )  # ~ For all except SENSOR_REGISTRATION
 
 
+@manager.startup()
+def on_startup(sensors: SensorManager) -> None:
+    sensors.tasks.start_base_tasks()
+
+
 @manager.receive(PacketCode.SENSOR_REGISTRATION)
 def device_registration(
         packet: pkt.SensorRegistrationPkt,
