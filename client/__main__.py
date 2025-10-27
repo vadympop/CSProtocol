@@ -4,7 +4,7 @@ from asyncio import DatagramTransport
 
 from shared.logger import Logger
 from shared.protocol import CSProtocol
-from shared.utils.cli import prompt_ip, prompt_port, prompt_yes_no
+from shared.cli.utils import prompt_ip, prompt_port, prompt_yes_no
 
 from .cli import ClientCLI, SensorRuntime
 from .handlers import manager as main_handlers_manager

@@ -3,7 +3,7 @@ import contextlib
 
 from shared.protocol import CSProtocol
 from shared.logger import Logger
-from shared.utils.cli import prompt_port, prompt_ip
+from shared.cli.utils import prompt_port, prompt_ip
 
 from .cli import ServerCLI
 from .handlers import manager as handlers_manager

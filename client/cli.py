@@ -7,7 +7,20 @@ from decimal import Decimal, InvalidOperation
 from typing import Callable, Iterable
 
 from shared import packet as pkt
+from shared.cli.base import BaseCLI
 
+
+HELP_MSG = (
+    "Available commands:\n"
+    "  help / ?                - Show this help message\n"
+    "  status / list           - Show sensors status\n"
+    "  send <sensor>           - Manually send a packet from sensor\n"
+    "  auto <sensor> <on/off>  - Enable or disable automatic sending\n"
+    "  crc <sensor>            - Corrupt the next packet's CRC\n"
+    "  check_alive_test <sensor> - Enable the CHECK_ALIVE test mode\n"
+    "  exit / quit             - Stop the client"
+)
+WELCOME_MSG = "Client CLI started. Type 'help' to list commands."
 
 @dataclass
 class SensorRuntime:
@@ -17,31 +30,19 @@ class SensorRuntime:
     storage: dict
 
 
-class ClientCLI:
+class ClientCLI(BaseCLI):
     def __init__(
         self,
         sensors: Iterable[SensorRuntime],
         shutdown_callback: Callable[[], None] | Callable[[], asyncio.Future],
     ) -> None:
         self._sensors = list(sensors)
-        self._shutdown_callback = shutdown_callback
-        self._running = True
 
-    async def run(self) -> None:
-        print("Client CLI started. Type 'help' to list commands.")
-
-        while self._running:
-            try:
-                raw_command = await asyncio.to_thread(input, "client> ")
-            except (EOFError, KeyboardInterrupt):
-                await self._shutdown()
-                break
-
-            command = raw_command.strip()
-            if not command:
-                continue
-
-            await self._handle_command(command)
+        super().__init__(
+            welcome_msg=WELCOME_MSG,
+            help_msg=HELP_MSG,
+            shutdown_callback=shutdown_callback
+        )
 
     async def _handle_command(self, command: str) -> None:
         parts = shlex.split(command)
@@ -66,23 +67,11 @@ class ClientCLI:
         elif cmd in {"exit", "quit"}:
             await self._shutdown()
         else:
-            print(f"Unknown command: {cmd}. Type 'help' for a list of commands.")
-
-    def _print_help(self) -> None:
-        print(
-            "Available commands:\n"
-            "  help / ?                - Show this help message\n"
-            "  status / list           - Show sensors status\n"
-            "  send <sensor>           - Manually send a packet from sensor\n"
-            "  auto <sensor> <on/off>  - Enable or disable automatic sending\n"
-            "  crc <sensor>            - Corrupt the next packet's CRC\n"
-            "  check_alive_test <sensor> - Enable the CHECK_ALIVE test mode\n"
-            "  exit / quit             - Stop the client"
-        )
+            self.cprint(f"Unknown command: {cmd}. Type 'help' for a list of commands")
 
     def _print_status(self) -> None:
         if not self._sensors:
-            print("No sensors configured.")
+            self.cprint("No sensors configured")
             return
 
         for idx, sensor in enumerate(self._sensors, start=1):
@@ -93,7 +82,7 @@ class ClientCLI:
             crc_pending = storage.get("break_crc_once", False)
             check_alive_test = storage.get("check_alive_test")
 
-            print(
+            self.cprint(
                 f"[{idx}] {sensor.identifier}"
                 f" | local={sensor.local_ip}:{sensor.local_port}"
                 f" | token={'-' if token is None else token}"
@@ -111,12 +100,12 @@ class ClientCLI:
         storage = sensor.storage
         transport = storage.get("transport")
         if transport is None:
-            print("Transport is not ready yet. Please wait for initialization.")
+            self.cprint("Transport is not ready yet. Please wait for initialization")
             return
 
         token = storage.get("token")
         if token is None:
-            print("Sensor is not registered yet. Wait for REGISTRATION_ACK.")
+            self.cprint("Sensor is not registered yet. Wait for REGISTRATION_ACK")
             return
 
         payload = {}
@@ -135,11 +124,11 @@ class ClientCLI:
             force_invalid_crc=self._consume_crc_flag(storage),
         )
 
-        print("Packet sent successfully.")
+        self.cprint("Packet sent successfully")
 
     def _command_auto(self, args: list[str]) -> None:
         if len(args) < 2:
-            print("Usage: auto <sensor> <on/off>")
+            self.cprint("Usage: auto <sensor> <on/off>")
             return
 
         sensor = self._resolve_sensor([args[0]])
@@ -148,14 +137,15 @@ class ClientCLI:
 
         state = args[1].lower()
         if state not in {"on", "off"}:
-            print("State must be either 'on' or 'off'.")
+            self.cprint("State must be either 'on' or 'off'")
             return
 
         sensor.storage["auto_sending"] = state == "on"
         if state == "off":
             sensor.storage["data_sent_at"] = None
             sensor.storage["is_data_ack"] = True
-        print(f"Automatic sending for {sensor.identifier} is now {state}.")
+
+        self.cprint(f"Automatic sending for {sensor.identifier} is now {state}")
 
     def _command_crc(self, args: list[str]) -> None:
         sensor = self._resolve_sensor(args)
@@ -163,7 +153,7 @@ class ClientCLI:
             return
 
         sensor.storage["break_crc_once"] = True
-        print("The next packet from this sensor will have an invalid CRC.")
+        self.cprint("The next packet from this sensor will have an invalid CRC")
 
     def _command_check_alive(self, args: list[str]) -> None:
         sensor = self._resolve_sensor(args)
@@ -174,8 +164,8 @@ class ClientCLI:
         sensor.storage["check_alive_test"] = {"attempts": 0}
         sensor.storage["data_sent_at"] = None
         sensor.storage["is_data_ack"] = True
-        print(
-            "CHECK_ALIVE test enabled. Automatic sending disabled until you re-enable it."
+        self.cprint(
+            "CHECK_ALIVE test enabled. Automatic sending disabled until you re-enable it"
         )
 
     async def _prompt_field(
@@ -194,19 +184,19 @@ class ClientCLI:
             try:
                 decimal_value = Decimal(raw_value)
             except InvalidOperation:
-                print("Invalid number. Please try again.")
+                self.cprint("Invalid number. Please try again")
                 continue
 
             if decimal_value < Decimal(str(min_value)) or decimal_value > Decimal(str(max_value)):
-                print("Value out of allowed range. Try again.")
+                self.cprint("Value out of allowed range. Try again")
                 continue
 
             if decimals == 0 and decimal_value != decimal_value.to_integral_value():
-                print("This field requires an integer value.")
+                self.cprint("This field requires an integer value")
                 continue
 
             if 0 < decimals < -decimal_value.as_tuple().exponent:
-                print(f"Too many decimal places (allowed: {decimals}).")
+                self.cprint(f"Too many decimal places (allowed: {decimals})")
                 continue
 
             if decimals == 0:
@@ -216,7 +206,7 @@ class ClientCLI:
 
     def _resolve_sensor(self, args: list[str]) -> SensorRuntime | None:
         if not args:
-            print("Sensor identifier is required.")
+            self.cprint("Sensor identifier is required")
             return None
 
         selector = args[0].lower()
@@ -225,7 +215,7 @@ class ClientCLI:
             if selector == str(idx) or selector == sensor.identifier.lower():
                 return sensor
 
-        print(f"Sensor '{args[0]}' was not found.")
+        self.cprint(f"Sensor '{args[0]}' was not found")
         return None
 
     @staticmethod
@@ -234,12 +224,3 @@ class ClientCLI:
             storage["break_crc_once"] = False
             return True
         return False
-
-    async def _shutdown(self) -> None:
-        if not self._running:
-            return
-
-        self._running = False
-        result = self._shutdown_callback()
-        if asyncio.iscoroutine(result):
-            await result
