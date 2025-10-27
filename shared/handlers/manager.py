@@ -27,7 +27,7 @@ class HandlersManager:
         self.sensors: SensorManager | None = SensorManager(self.background_tasks) if server_mode else None
 
     def copy(self, storage: dict = None) -> "HandlersManager":
-        storage = self.storage if storage is None else self.storage | storage
+        storage = {**self.storage} if storage is None else {**self.storage} | storage
         manager = HandlersManager(self.server_mode, storage)
 
         for code, callbacks in self._handlers.items():
