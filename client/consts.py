@@ -21,7 +21,7 @@ SENSORS_CONFIGURATION = [
         ]
     },
     {
-        "port": 5002,
+        "default_port": 5002,
         "sensor_type": "WIND",
         "fields": [
             ("wind_speed", 0, 50, 1),
@@ -31,7 +31,7 @@ SENSORS_CONFIGURATION = [
         ]
     },
     {
-        "port": 5003,
+        "default_port": 5003,
         "sensor_type": "RAIN",
         "fields": [
             ("rainfall", 0, 500, 1),
@@ -41,7 +41,7 @@ SENSORS_CONFIGURATION = [
         ]
     },
     {
-        "port": 5004,
+        "default_port": 5004,
         "sensor_type": "AIR",
         "fields": [
             ("co2", 300, 5000, 1),
