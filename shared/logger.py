@@ -44,5 +44,5 @@ class Logger:
 
     @classmethod
     def invalid_data(cls, sensor_id: str) -> None:
-        print(f"INFO: {sensor_id} CORRUTPED DATA at {datetime.datetime.now()}. REQUESTING DATA")
+        print(f"INFO: {sensor_id} CORRUPTED DATA at {datetime.datetime.now()}. REQUESTING DATA")
 
