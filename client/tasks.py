@@ -38,15 +38,11 @@ def check_data_ack(transport: TransportWrapper, storage: dict[str, Any]) -> None
             transport.resend_last(PacketCode.SENSOR_DATA)
 
 
-async def check_register_ack(manager: HandlersManager) -> None:
-    while True:
-        storage: dict[str, Any] = manager.storage
-        if storage["register_sent_at"] is not None:
-            if not storage["is_register_ack"] and time.time() - storage["register_sent_at"] > 1:
-                Logger.log_debug(f"Register ack timed out, do registration again")
+def check_register_ack(manager: HandlersManager) -> None:
+    storage: dict[str, Any] = manager.storage
+    if storage["register_sent_at"] is not None:
+        if not storage["is_register_ack"] and time.time() - storage["register_sent_at"] > 1:
+            Logger.log_debug(f"Register ack timed out, do registration again")
 
-                # Sends registration
-                manager.call_startup()
-                break
-
-        await asyncio.sleep(0.5)
+            # Sends registration
+            manager.call_startup()

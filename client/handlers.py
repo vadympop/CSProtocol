@@ -29,7 +29,9 @@ def on_startup(transport: TransportWrapper, handlers: HandlersManager, storage: 
         pkt.SensorRegistrationPkt(sensor_type=sensor_conf["sensor_type"]),
         server_addr
     )
-    handlers.background_tasks.add_task("register_ack", check_register_ack, manager=handlers)
+    handlers.background_tasks.add_task(
+        "register_ack", BackgroundTask(check_register_ack, 0.5), manager=handlers
+    )
 
 
 @manager.receive(PacketCode.DATA_ACK)
@@ -51,6 +53,7 @@ def handle_registration_ack(
 
     Logger.log_debug(f"Token was received - {packet.token}")
 
+    background_tasks.cancel("register_ack")
     background_tasks.add_task(
         "send_data", BackgroundTask(send_data, 10), transport=transport, storage=storage)
     background_tasks.add_task(
