@@ -138,7 +138,7 @@ class ClientCLI(BaseCLI):
         self.cprint("Packet sent successfully")
 
     def _command_auto(self, args: list[str]) -> None:
-        if len(args) < 2:
+        if len(args) < 1:
             self.cprint("Usage: auto <on/off>")
             return
 
