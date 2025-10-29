@@ -46,7 +46,7 @@ class ClientCLI(BaseCLI):
         )
 
     async def _handle_command(self, command: str) -> None:
-        parts = shlex.split(command)
+        parts = command.split(" ")
         if not parts:
             return
 

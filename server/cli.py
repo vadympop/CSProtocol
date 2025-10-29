@@ -1,5 +1,4 @@
 import asyncio
-import shlex
 from typing import Callable
 
 from shared.cli.base import BaseCLI
@@ -37,7 +36,7 @@ class ServerCLI(BaseCLI):
         self._get_address = get_address
 
     async def _handle_command(self, command: str) -> None:
-        parts = shlex.split(command)
+        parts = command.split(" ")
         if not parts:
             return
 
