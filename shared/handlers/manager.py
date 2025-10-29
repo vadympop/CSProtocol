@@ -75,6 +75,7 @@ class HandlersManager:
 
     def _generate_middleware_kwargs(self, **kwargs) -> dict[str, Any]:
         middleware_kwargs = {
+            "handlers": self,
             "transport": self._transport,
             "storage": self.storage,
             "background_tasks": self.background_tasks,

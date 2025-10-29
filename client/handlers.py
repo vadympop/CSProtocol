@@ -1,3 +1,4 @@
+import time
 from typing import Any
 
 from shared import packet as pkt
@@ -8,32 +9,27 @@ from shared.logger import Logger
 from shared.tasks import BackgroundTasksManager, BackgroundTask
 from shared.transport import TransportWrapper
 
-from .tasks import send_data, check_data_ack
+from .consts import HANDLERS_INITIAL_STORAGE
+from .tasks import send_data, check_data_ack, check_register_ack
 
-
-manager = HandlersManager(
-    initial_storage={
-        "is_data_ack": False,
-        "data_sent_at": None,
-        "token": None,
-        "auto_sending": False,
-        "check_alive_test": None
-    },
-    server_mode=False
-)
+manager = HandlersManager(initial_storage=HANDLERS_INITIAL_STORAGE, server_mode=False)
 
 
 @manager.startup()
-def on_startup(transport: TransportWrapper, storage: dict[str, Any]) -> None:
+def on_startup(transport: TransportWrapper, handlers: HandlersManager, storage: dict[str, Any]) -> None:
     storage["transport"] = transport  # For sending custom packets in cli
 
     server_addr: PacketAddr = storage["server_addr"]
     sensor_conf: dict = storage["configuration"]
 
+    storage["register_sent_at"] = time.time()
+    storage["is_register_ack"] = False
+
     transport.sendto(
         pkt.SensorRegistrationPkt(sensor_type=sensor_conf["sensor_type"]),
         server_addr
     )
+    handlers.background_tasks.add_task("register_ack", check_register_ack, manager=handlers)
 
 
 @manager.receive(PacketCode.DATA_ACK)
@@ -50,6 +46,9 @@ def handle_registration_ack(
         background_tasks: BackgroundTasksManager
 ) -> None:
     storage["token"] = packet.token
+    storage["is_register_ack"] = True
+    storage["register_sent_at"] = None
+
     Logger.log_debug(f"Token was received - {packet.token}")
 
     background_tasks.add_task(
@@ -89,11 +88,11 @@ def handle_invalid_crc(packet: pkt.Packet, transport: TransportWrapper) -> None:
 
 
 @manager.receive(PacketCode.INVALID_TOKEN)
-def handle_invalid_token(packet: pkt.Packet, background_tasks: BackgroundTasksManager, storage: dict[str, Any]) -> None:
-    storage["token"] = None
+def handle_invalid_token(packet: pkt.Packet, background_tasks: BackgroundTasksManager, handlers: HandlersManager) -> None:
+    handlers.storage["token"] = None
 
     # Cancel tasks
     background_tasks.cancel("send_data", "data_ack")
 
-    # Send registration
-    manager.call_startup()
+    # Sends registration
+    handlers.call_startup()
