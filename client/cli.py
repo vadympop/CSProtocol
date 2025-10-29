@@ -1,5 +1,4 @@
 import asyncio
-import shlex
 import time
 
 from dataclasses import dataclass
@@ -15,7 +14,7 @@ HELP_MSG = (
     "  help / ?                - Show this help message\n"
     "  status / list           - Show sensors status\n"
     "  send <sensor>           - Manually send a packet from sensor\n"
-    "  auto <sensor> <on/off>  - Enable or disable automatic sending\n"
+    "  auto <on/off>           - Enable or disable automatic sending\n"
     "  crc <sensor>            - Corrupt the next packet's CRC\n"
     "  check_alive_test <sensor> - Enable the CHECK_ALIVE test mode\n"
     "  exit / quit             - Stop the client"
@@ -140,24 +139,21 @@ class ClientCLI(BaseCLI):
 
     def _command_auto(self, args: list[str]) -> None:
         if len(args) < 2:
-            self.cprint("Usage: auto <sensor> <on/off>")
+            self.cprint("Usage: auto <on/off>")
             return
 
-        sensor = self._resolve_sensor([args[0]])
-        if sensor is None:
-            return
-
-        state = args[1].lower()
+        state = args[0].lower()
         if state not in {"on", "off"}:
             self.cprint("State must be either 'on' or 'off'")
             return
 
-        sensor.storage["auto_sending"] = state == "on"
-        if state == "off":
-            sensor.storage["data_sent_at"] = None
-            sensor.storage["is_data_ack"] = True
+        for sensor in self._sensors:
+            sensor.storage["auto_sending"] = state == "on"
+            if state == "off":
+                sensor.storage["data_sent_at"] = None
+                sensor.storage["is_data_ack"] = True
 
-        self.cprint(f"Automatic sending for {sensor.identifier} is now {state}")
+        self.cprint(f"Automatic sending for all sensors is now {state}")
 
     def _command_crc(self, args: list[str]) -> None:
         if (sensor := self._resolve_sensor(args)) is None:
