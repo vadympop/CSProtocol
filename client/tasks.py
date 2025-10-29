@@ -36,6 +36,7 @@ def check_data_ack(transport: TransportWrapper, storage: dict[str, Any]) -> None
         if not storage["is_data_ack"] and time.time() - storage["data_sent_at"] > 1:
             Logger.log_debug(f"Data ack timed out, last packet was resent")
             transport.resend_last(PacketCode.SENSOR_DATA)
+            storage["data_sent_at"] = time.time()
 
 
 def check_register_ack(manager: HandlersManager) -> None:
