@@ -1,5 +1,6 @@
 import asyncio
 import contextlib
+import socket
 from asyncio import DatagramTransport
 
 from shared.logger import Logger
@@ -63,10 +64,14 @@ async def main() -> None:
         }
         manager = main_handlers_manager.copy(storage=storage_defaults)
 
-        transport, _ = await loop.create_datagram_endpoint(
-            lambda m=manager: CSProtocol(m, on_connection_lost),
-            local_addr=(conf["ip"], conf["port"]),
-        )
+        try:
+            transport, _ = await loop.create_datagram_endpoint(
+                lambda m=manager: CSProtocol(m, on_connection_lost),
+                local_addr=(conf["ip"], conf["port"]),
+            )
+        except socket.gaierror:
+            Logger.log_debug(f"Could not connect to {conf['ip']}:{conf['port']}")
+            return
 
         transports.append(transport)
         sensor_runtimes.append(

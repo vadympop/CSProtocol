@@ -1,5 +1,6 @@
 import asyncio
 import contextlib
+import socket
 
 from shared.protocol import CSProtocol
 from shared.logger import Logger
@@ -21,10 +22,14 @@ async def main() -> None:
     loop = asyncio.get_running_loop()
     on_connection_lost = loop.create_future()
 
-    transport, _ = await loop.create_datagram_endpoint(
-        lambda: CSProtocol(handlers_manager, on_connection_lost),
-        local_addr=(local_ip, local_port)
-    )
+    try:
+        transport, _ = await loop.create_datagram_endpoint(
+            lambda: CSProtocol(handlers_manager, on_connection_lost),
+            local_addr=(local_ip, local_port)
+        )
+    except socket.gaierror:
+        Logger.log_debug(f"Could not connect to {local_ip}:{local_port}")
+        return
 
     cli = ServerCLI(
         storage=handlers_manager.storage,
