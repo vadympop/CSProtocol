@@ -16,7 +16,7 @@ manager = HandlersManager(
         "is_data_ack": False,
         "data_sent_at": None,
         "token": None,
-        "auto_sending": True,
+        "auto_sending": False,
         "check_alive_test": None
     },
     server_mode=False
