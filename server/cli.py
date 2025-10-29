@@ -58,10 +58,10 @@ class ServerCLI(BaseCLI):
 
     def _print_status(self) -> None:
         address = self._get_address()
-        pending_skip = self._storage.get("skip_next_ack", False)
+        pending_skip_count = self._storage.get("skip_data_ack_remaining", 0)
         self.cprint(
             f"Server bound to {address[0]}:{address[1]}\n"
-            f"Skip next DATA_ACK: {'enabled' if pending_skip else 'disabled'}"
+            f"Skip next DATA_ACK count: {pending_skip_count if pending_skip_count else 'disabled'}"
         )
 
     def _print_sensors(self) -> None:
