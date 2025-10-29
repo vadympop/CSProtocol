@@ -35,12 +35,17 @@ class SensorManager:
 
     def register(self, addr: PacketAddr, sensor_type: str, token: int) -> None:
         found_sensor = next((x for x in self._sensors.values() if x.sensor_type == sensor_type), None)
-        if found_sensor:
-            print("Sensor {sensor_type} already registered")
+        if found_sensor and found_sensor.addr != addr:
+            Logger.log_debug(f"One sensor with type {sensor_type} already registered")
             return
 
+        if found_sensor and found_sensor.addr == addr:
+            # Case when already registered sensor received INVALID_TOKEN pkt
+            # and try to reregister
+            Logger.log_debug(f"Reregistering sensor {sensor_type}")
+
         Logger.log_debug(f"Registering sensor {sensor_type} @ {addr}")
-        self._sensors[addr] = SensorInfo(addr, sensor_type, time.time(), token, True)
+        self._sensors[addr] = SensorInfo(addr, sensor_type, time.time(), token)
 
     def unregister(self, addr: PacketAddr) -> None:
         sensor = self._sensors.pop(addr)
