@@ -1,3 +1,18 @@
+import sys
+
+
+def has_debug_flag() -> bool:
+    if "--debug" not in sys.argv:
+        return False
+
+    index = sys.argv.index("--debug")
+    if (index + 1) < len(sys.argv):
+        value = sys.argv[index + 1].lower()
+        return value == "true"
+
+    return True  # if after debug no value specified, return default - True
+
+
 def prompt_ip(prompt: str, default: str) -> str:
     return input(f"{prompt} [{default}]: ").strip() or default
 

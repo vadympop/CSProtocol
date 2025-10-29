@@ -5,13 +5,14 @@ from asyncio import DatagramTransport
 
 from shared.logger import Logger
 from shared.protocol import CSProtocol
-from shared.cli.utils import prompt_ip, prompt_port, prompt_yes_no
+from shared.cli.utils import prompt_ip, prompt_port, prompt_yes_no, has_debug_flag
 
 from .consts import DEFAULT_SERVER_ADDR, SENSORS_CONFIGURATION, DEFAULT_SENSOR_IP
 from .cli import ClientCLI, SensorRuntime
 from .handlers import manager as main_handlers_manager
 
-Logger.set_config(debug=True)
+
+Logger.set_config(debug=has_debug_flag())
 
 
 def configure_sensors() -> tuple[tuple[str, int], list[dict]]:

@@ -4,13 +4,13 @@ import socket
 
 from shared.protocol import CSProtocol
 from shared.logger import Logger
-from shared.cli.utils import prompt_port, prompt_ip
+from shared.cli.utils import prompt_port, prompt_ip, has_debug_flag
 
 from .cli import ServerCLI
 from .handlers import manager as handlers_manager
 
 
-Logger.set_config(debug=True)
+Logger.set_config(debug=has_debug_flag())
 
 DEFAULT_SERVER_ADDR = ("127.0.0.1", 5000)
 
