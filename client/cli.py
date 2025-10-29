@@ -6,9 +6,9 @@ from dataclasses import dataclass
 from decimal import Decimal, InvalidOperation
 from typing import Callable, Iterable
 
+from client.utils import generate_sensor_payload
 from shared import packet as pkt
 from shared.cli.base import BaseCLI
-from shared.transport import should_force_invalid_crc
 
 HELP_MSG = (
     "Available commands:\n"
@@ -80,7 +80,6 @@ class ClientCLI(BaseCLI):
             token = storage.get("token")
             auto_enabled = storage.get("auto_sending", True)
             waiting_ack = storage.get("data_sent_at") is not None and not storage.get("is_data_ack", True)
-            crc_pending = storage.get("break_crc_once", False)
             check_alive_test = storage.get("check_alive_test")
 
             self.cprint(
@@ -89,32 +88,27 @@ class ClientCLI(BaseCLI):
                 f" | token={'-' if token is None else token}"
                 f" | auto={'on' if auto_enabled else 'off'}"
                 f" | waiting_ack={'yes' if waiting_ack else 'no'}"
-                f" | crc_break={'yes' if crc_pending else 'no'}"
                 f" | check_alive_test={'active' if check_alive_test else 'inactive'}"
             )
 
-    async def _command_send(self, args: list[str]) -> None:
-        sensor = self._resolve_sensor(args)
-        if sensor is None:
-            return
-
+    def _send_packet(
+            self,
+            sensor: SensorRuntime,
+            payload: dict,
+            is_low_battery: bool,
+            *,
+            force_invalid_crc: bool = False
+    ) -> bool:
         storage = sensor.storage
         transport = storage.get("transport")
         if transport is None:
             self.cprint("Transport is not ready yet. Please wait for initialization")
-            return
+            return False
 
         token = storage.get("token")
         if token is None:
             self.cprint("Sensor is not registered yet. Wait for REGISTRATION_ACK")
-            return
-
-        payload = {}
-        for field_name, min_value, max_value, decimals in storage["configuration"]["fields"]:
-            payload[field_name] = await self._prompt_field(field_name, min_value, max_value, decimals)
-
-        low_battery_input = await asyncio.to_thread(input, "Low battery? (y/N): ")
-        is_low_battery = low_battery_input.strip().lower() in {"y", "yes", "true", "1"}
+            return False
 
         storage["is_data_ack"] = False
         storage["data_sent_at"] = time.time()
@@ -122,8 +116,25 @@ class ClientCLI(BaseCLI):
         transport.sendto(
             pkt.SensorDataPkt(token=token, payload=payload, is_low_battery=is_low_battery),
             storage["server_addr"],
-            force_invalid_crc=should_force_invalid_crc(storage)
+            force_invalid_crc=force_invalid_crc
         )
+
+        return True
+
+    async def _command_send(self, args: list[str]) -> None:
+        if (sensor := self._resolve_sensor(args)) is None:
+            return
+
+        storage = sensor.storage
+        low_battery_input = await asyncio.to_thread(input, "Low battery? (y/N): ")
+        is_low_battery = low_battery_input.strip().lower() in {"y", "yes", "true", "1"}
+
+        payload = {}
+        for field_name, min_value, max_value, decimals in storage["configuration"]["fields"]:
+            payload[field_name] = await self._prompt_field(field_name, min_value, max_value, decimals)
+
+        if not self._send_packet(sensor, payload, is_low_battery):
+            return
 
         self.cprint("Packet sent successfully")
 
@@ -149,12 +160,15 @@ class ClientCLI(BaseCLI):
         self.cprint(f"Automatic sending for {sensor.identifier} is now {state}")
 
     def _command_crc(self, args: list[str]) -> None:
-        sensor = self._resolve_sensor(args)
-        if sensor is None:
+        if (sensor := self._resolve_sensor(args)) is None:
             return
 
-        sensor.storage["break_crc_once"] = True
-        self.cprint("The next packet from this sensor will have an invalid CRC")
+        storage = sensor.storage
+        payload = generate_sensor_payload(storage["configuration"]["fields"])
+        if not self._send_packet(sensor, payload, False, force_invalid_crc=True):
+            return
+
+        self.cprint("The sent packet from this sensor have an invalid CRC")
 
     def _command_check_alive(self, args: list[str]) -> None:
         sensor = self._resolve_sensor(args)
@@ -218,11 +232,3 @@ class ClientCLI(BaseCLI):
 
         self.cprint(f"Sensor '{args[0]}' was not found")
         return None
-
-    @staticmethod
-    def _consume_crc_flag(storage: dict) -> bool:
-        if storage.get("break_crc_once"):
-            storage["break_crc_once"] = False
-            return True
-
-        return False

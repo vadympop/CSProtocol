@@ -10,14 +10,6 @@ from shared.logger import Logger
 from shared.packet import Packet
 
 
-def should_force_invalid_crc(storage: dict[str, Any]) -> bool:
-    if storage.get("break_crc_once"):
-        storage["break_crc_once"] = False
-        return True
-
-    return False
-
-
 class TransportWrapper:
     def __init__(self, transport: DatagramTransport) -> None:
         self._transport: DatagramTransport = transport

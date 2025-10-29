@@ -7,3 +7,8 @@ def generate_sensor_value(min_value: float, max_value: float, decimal: int) -> i
         return int(result)
 
     return result
+
+def generate_sensor_payload(fields: list[tuple]) -> dict[str, int | float]:
+    return {
+        x[0]: generate_sensor_value(*x[1:]) for x in fields
+    }
