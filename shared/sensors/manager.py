@@ -44,7 +44,7 @@ class SensorManager:
             # and try to reregister
             Logger.log_debug(f"Reregistering sensor {sensor_type}")
 
-        Logger.log_debug(f"Registering sensor {sensor_type} @ {addr}")
+        Logger.register(sensor_type)
         self._sensors[addr] = SensorInfo(addr, sensor_type, time.time(), token)
 
     def unregister(self, addr: PacketAddr) -> None:

@@ -17,8 +17,8 @@ class Logger:
         print(f"DEBUG - {datetime.datetime.now()}: {msg}")
 
     @classmethod
-    def register(cls, sensor_id: str, timestamp: datetime.datetime) -> None:
-        print(f"INFO: {sensor_id} REGISTERED at {timestamp}")
+    def register(cls, sensor_id: str) -> None:
+        print(f"INFO: {sensor_id} REGISTERED at {datetime.datetime.now()}")
 
     @classmethod
     def data_received(
