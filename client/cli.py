@@ -1,13 +1,16 @@
 import asyncio
 import time
+from asyncio import DatagramTransport
 
 from dataclasses import dataclass
 from decimal import Decimal, InvalidOperation
-from typing import Callable, Iterable
+from typing import Callable, Iterable, Awaitable
 
 from client.utils import generate_sensor_payload
 from shared import packet as pkt
 from shared.cli.base import BaseCLI
+from shared.cli.utils import configure_sensors
+from shared.handlers.types import PacketAddr
 
 HELP_MSG = (
     "Available commands:\n"
@@ -17,9 +20,10 @@ HELP_MSG = (
     "  auto <on/off>           - Enable or disable automatic sending\n"
     "  crc <sensor>            - Corrupt the next packet's CRC\n"
     "  check_alive_test <sensor> - Enable the CHECK_ALIVE test mode\n"
+    "  configure               - Configure and start sensors\n"
     "  exit / quit             - Stop the client"
 )
-WELCOME_MSG = "Client CLI started. Type 'help' to list commands."
+WELCOME_MSG = "Client CLI started. Type 'configure' to set up and start sensors or 'help' to list commands."
 
 
 @dataclass
@@ -33,16 +37,22 @@ class SensorRuntime:
 class ClientCLI(BaseCLI):
     def __init__(
         self,
-        sensors: Iterable[SensorRuntime],
+        start_hook: Callable[["ClientCLI", PacketAddr, list[dict]], Awaitable[None]],
         shutdown_callback: Callable[[], None] | Callable[[], asyncio.Future],
     ) -> None:
-        self._sensors = list(sensors)
+        self._start_hook = start_hook
+        self._transports: list[DatagramTransport] = []
+        self._sensors: list[SensorRuntime] = []
 
         super().__init__(
             welcome_msg=WELCOME_MSG,
             help_msg=HELP_MSG,
             shutdown_callback=shutdown_callback
         )
+
+    def init(self, *, sensors: Iterable[SensorRuntime], transports: list[DatagramTransport]) -> None:
+        self._sensors = sensors
+        self._transports = transports
 
     async def _handle_command(self, command: str) -> None:
         parts = command.split(" ")
@@ -62,12 +72,24 @@ class ClientCLI(BaseCLI):
             self._command_auto(args)
         elif cmd == "crc":
             self._command_crc(args)
+        elif cmd == "configure":
+            await self._command_configure()
         elif cmd == "check_alive_test":
             self._command_check_alive(args)
         elif cmd in {"exit", "quit"}:
             await self._shutdown()
         else:
             self.cprint(f"Unknown command: {cmd}. Type 'help' for a list of commands")
+
+    async def _command_configure(self) -> None:
+        server_addr, configured_sensors = configure_sensors()
+        if not configured_sensors:
+            print("No sensors enabled. Exiting")
+            return
+
+        await self._start_hook(self, server_addr, configured_sensors)
+        count = len(configured_sensors)
+        self.cprint(f"Client configured with {count} sensor{'s' if count != 1 else ''}.")
 
     def _print_status(self) -> None:
         if not self._sensors:
@@ -228,3 +250,6 @@ class ClientCLI(BaseCLI):
 
         self.cprint(f"Sensor '{args[0]}' was not found")
         return None
+
+    def get_transports(self) -> list[DatagramTransport]:
+        return self._transports

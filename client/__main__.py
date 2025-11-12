@@ -1,13 +1,13 @@
 import asyncio
 import contextlib
+import functools
 import socket
 from asyncio import DatagramTransport
 
 from shared.logger import Logger
 from shared.protocol import CSProtocol
-from shared.cli.utils import prompt_ip, prompt_port, prompt_yes_no, has_debug_flag
+from shared.cli.utils import has_debug_flag
 
-from .consts import DEFAULT_SERVER_ADDR, SENSORS_CONFIGURATION, DEFAULT_SENSOR_IP
 from .cli import ClientCLI, SensorRuntime
 from .handlers import manager as main_handlers_manager
 
@@ -15,53 +15,10 @@ from .handlers import manager as main_handlers_manager
 Logger.set_config(debug=has_debug_flag())
 
 
-def configure_sensors() -> tuple[tuple[str, int], list[dict]]:
-    server_ip = prompt_ip("Enter server IP", DEFAULT_SERVER_ADDR[0])
-    server_port = prompt_port("Enter server port", DEFAULT_SERVER_ADDR[1])
-
-    configured_sensors: list[dict] = []
-
-    for template in SENSORS_CONFIGURATION:
-        enable = prompt_yes_no(f"Enable sensor {template['sensor_type']}?", True)
-        if not enable:
-            continue
-
-        sensor_ip = prompt_ip(
-            f"Enter local IP for {template['sensor_type']}",
-            DEFAULT_SENSOR_IP,
-        )
-        sensor_port = prompt_port(
-            f"Enter local port for {template['sensor_type']}",
-            template["default_port"],
-        )
-
-        configured_sensors.append(
-            {
-                "sensor_type": template["sensor_type"],
-                "fields": template["fields"],
-                "ip": sensor_ip,
-                "port": sensor_port,
-            }
-        )
-
-    return (server_ip, server_port), configured_sensors
-
-
-async def main() -> None:
-    server_addr, configured_sensors = configure_sensors()
-    if not configured_sensors:
-        print("No sensors enabled. Exiting")
-        return
-
+async def start_server(on_shutdown, cli: ClientCLI, server_addr, configured_sensors) -> None:
     loop = asyncio.get_running_loop()
     transports: list[DatagramTransport] = []
     sensor_runtimes: list[SensorRuntime] = []
-
-    shutdown_event = asyncio.Event()
-
-    def _request_shutdown() -> None:
-        if not shutdown_event.is_set():
-            shutdown_event.set()
 
     for conf in configured_sensors:
         storage_defaults = {
@@ -72,7 +29,7 @@ async def main() -> None:
 
         try:
             transport, _ = await loop.create_datagram_endpoint(
-                lambda m=manager: CSProtocol(m, _request_shutdown),
+                lambda m=manager: CSProtocol(m, on_shutdown),
                 local_addr=(conf["ip"], conf["port"]),
             )
         except socket.gaierror:
@@ -89,17 +46,31 @@ async def main() -> None:
             )
         )
 
-    cli = ClientCLI(sensor_runtimes, _request_shutdown)
+    cli.init(
+        sensors=sensor_runtimes,
+        transports=transports,
+    )
+
+
+async def main() -> None:
+    shutdown_event = asyncio.Event()
+
+    def _request_shutdown() -> None:
+        if not shutdown_event.is_set():
+            shutdown_event.set()
+
+    start_hook = functools.partial(start_server, _request_shutdown)
+    cli = ClientCLI(start_hook, _request_shutdown)
     cli_task = asyncio.create_task(cli.run())
     try:
         await shutdown_event.wait()
     finally:
-        for transport in transports:
-            transport.close()
-
         cli_task.cancel()
         with contextlib.suppress(asyncio.CancelledError):
             await cli_task
+
+        for transport in cli.get_transports():
+            transport.close()
 
 
 if __name__ == "__main__":
