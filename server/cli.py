@@ -32,6 +32,7 @@ class ServerCLI(BaseCLI):
             shutdown_callback=shutdown_callback
         )
 
+        self._transport = None
         self.is_initialized = False
         self.start_hook = start_hook
         self._storage = None
@@ -50,8 +51,7 @@ class ServerCLI(BaseCLI):
         self._storage = storage
         self._get_sensors = get_sensors
         self._get_address = get_address
-
-        super().transport_init(transport=transport)
+        self._transport = transport
 
     async def _handle_command(self, command: str) -> None:
         parts = command.split(" ")
@@ -147,3 +147,6 @@ class ServerCLI(BaseCLI):
 
         self.cprint("Server is not running. Use 'configure' to start it.")
         return False
+
+    def get_transport(self) -> DatagramTransport:
+        return self._transport
