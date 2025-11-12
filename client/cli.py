@@ -40,6 +40,7 @@ class ClientCLI(BaseCLI):
         start_hook: Callable[["ClientCLI", PacketAddr, list[dict]], Awaitable[None]],
         shutdown_callback: Callable[[], None] | Callable[[], asyncio.Future],
     ) -> None:
+        self.is_configured = False
         self._start_hook = start_hook
         self._transports: list[DatagramTransport] = []
         self._sensors: list[SensorRuntime] = []
@@ -51,6 +52,7 @@ class ClientCLI(BaseCLI):
         )
 
     def init(self, *, sensors: Iterable[SensorRuntime], transports: list[DatagramTransport]) -> None:
+        self.is_configured = True
         self._sensors = sensors
         self._transports = transports
 
@@ -82,9 +84,13 @@ class ClientCLI(BaseCLI):
             self.cprint(f"Unknown command: {cmd}. Type 'help' for a list of commands")
 
     async def _command_configure(self) -> None:
+        if self.is_configured:
+            self.cprint("Server already configured")
+            return
+
         server_addr, configured_sensors = configure_sensors()
         if not configured_sensors:
-            print("No sensors enabled. Exiting")
+            self.cprint("No sensors were configured.")
             return
 
         await self._start_hook(self, server_addr, configured_sensors)

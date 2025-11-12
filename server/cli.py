@@ -33,7 +33,7 @@ class ServerCLI(BaseCLI):
         )
 
         self._transport = None
-        self.is_initialized = False
+        self.is_configured = False
         self.start_hook = start_hook
         self._storage = None
         self._get_sensors = None
@@ -47,7 +47,7 @@ class ServerCLI(BaseCLI):
             get_sensors: Callable[[], list[SensorInfo]],
             get_address: Callable[[], tuple[str, int]],
     ) -> None:
-        self.is_initialized = True
+        self.is_configured = True
         self._storage = storage
         self._get_sensors = get_sensors
         self._get_address = get_address
@@ -87,6 +87,10 @@ class ServerCLI(BaseCLI):
         self.cprint(f"The next 3 DATA_ACK packets for {sensor.sensor_type} sensor will be skipped")
 
     async def _command_configure(self) -> None:
+        if self.is_configured:
+            self.cprint("Server already configured")
+            return
+
         server_ip = prompt_ip("Enter server IP", DEFAULT_SERVER_ADDR[0])
         server_port = prompt_port("Enter server port", DEFAULT_SERVER_ADDR[1])
 
