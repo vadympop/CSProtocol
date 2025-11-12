@@ -1,4 +1,5 @@
-from asyncio import DatagramProtocol, DatagramTransport, Future
+from typing import Callable
+from asyncio import DatagramProtocol, DatagramTransport
 
 from shared.handlers import HandlersManager
 from shared.handlers.types import PacketAddr
@@ -6,8 +7,8 @@ from shared.logger import Logger
 
 
 class CSProtocol(DatagramProtocol):
-    def __init__(self, handler_manager: HandlersManager, on_connection_lost: Future[bool]) -> None:
-        self.on_connection_lost: Future[bool] = on_connection_lost
+    def __init__(self, handler_manager: HandlersManager, on_connection_lost: Callable[[], None]) -> None:
+        self.on_connection_lost: Callable[[], None] = on_connection_lost
         self.transport: DatagramTransport | None = None
         self._handlers_manager: HandlersManager = handler_manager
 
@@ -24,5 +25,4 @@ class CSProtocol(DatagramProtocol):
 
     def connection_lost(self, exc: Exception | None) -> None:
         Logger.log_debug("Server stopped")
-        if not self.on_connection_lost.done():
-            self.on_connection_lost.set_result(True)
+        self.on_connection_lost()
