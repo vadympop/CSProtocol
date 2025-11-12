@@ -54,9 +54,14 @@ async def main() -> None:
         return
 
     loop = asyncio.get_running_loop()
-    on_connection_lost = loop.create_future()
     transports: list[DatagramTransport] = []
     sensor_runtimes: list[SensorRuntime] = []
+
+    shutdown_event = asyncio.Event()
+
+    def _request_shutdown() -> None:
+        if not shutdown_event.is_set():
+            shutdown_event.set()
 
     for conf in configured_sensors:
         storage_defaults = {
@@ -67,7 +72,7 @@ async def main() -> None:
 
         try:
             transport, _ = await loop.create_datagram_endpoint(
-                lambda m=manager: CSProtocol(m, on_connection_lost),
+                lambda m=manager: CSProtocol(m, _request_shutdown),
                 local_addr=(conf["ip"], conf["port"]),
             )
         except socket.gaierror:
@@ -84,12 +89,6 @@ async def main() -> None:
             )
         )
 
-    shutdown_event = asyncio.Event()
-
-    def _request_shutdown() -> None:
-        if not shutdown_event.is_set():
-            shutdown_event.set()
-
     cli = ClientCLI(sensor_runtimes, _request_shutdown)
     cli_task = asyncio.create_task(cli.run())
     try:
@@ -97,8 +96,6 @@ async def main() -> None:
     finally:
         for transport in transports:
             transport.close()
-
-        await on_connection_lost
 
         cli_task.cancel()
         with contextlib.suppress(asyncio.CancelledError):
