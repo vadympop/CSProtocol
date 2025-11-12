@@ -19,6 +19,7 @@ class BaseCLI(ABC):
 
     async def run(self) -> None:
         self.cprint(self.welcome_msg)
+        self._print_help()
 
         while self._running:
             try:
