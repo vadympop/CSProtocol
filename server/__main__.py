@@ -3,7 +3,6 @@ import contextlib
 import functools
 import socket
 
-from asyncio import DatagramTransport
 from shared.handlers.types import PacketAddr
 from shared.protocol import CSProtocol
 from shared.logger import Logger
@@ -18,7 +17,7 @@ Logger.set_config(debug=has_debug_flag())
 DEFAULT_SERVER_ADDR = ("127.0.0.1", 5000)
 
 
-async def start_server(on_shutdown, cli: ServerCLI, local_addr: PacketAddr) -> DatagramTransport | None:
+async def start_server(on_shutdown, cli: ServerCLI, local_addr: PacketAddr) -> None:
     loop = asyncio.get_running_loop()
 
     try:
@@ -36,8 +35,6 @@ async def start_server(on_shutdown, cli: ServerCLI, local_addr: PacketAddr) -> D
         get_sensors=lambda: handlers_manager.sensors.all_sensors(),  # sensors never be None if in manager server_mode=True
         get_address=lambda: transport.get_extra_info("sockname"),
     )
-
-    return transport
 
 
 async def main() -> None:
@@ -58,8 +55,8 @@ async def main() -> None:
         with contextlib.suppress(asyncio.CancelledError):
             await cli_task
 
-        if (cli_transport := cli.get_transport()) is not None and not cli_transport.is_closing():
-            cli_transport.close()
+        if (transport := cli.get_transport()) is not None and not transport.is_closing():
+            transport.close()
 
 
 if __name__ == "__main__":
