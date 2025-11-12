@@ -146,7 +146,7 @@ class ServerCLI(BaseCLI):
         return None
 
     def _assert_running(self) -> bool:
-        if self.is_initialized:
+        if self.is_configured:
             return True
 
         self.cprint("Server is not running. Use 'configure' to start it.")
