@@ -1,21 +1,29 @@
 import asyncio
 
 from abc import ABC, abstractmethod
+from asyncio import DatagramTransport
 from typing import Callable
 
+
+ShutdownCallbackType = Callable[[], None] | Callable[[], asyncio.Future]
 
 class BaseCLI(ABC):
     def __init__(
         self,
         welcome_msg: str,
         help_msg: str,
-        shutdown_callback: Callable[[], None] | Callable[[], asyncio.Future],
+        shutdown_callback: ShutdownCallbackType,
+        transport: DatagramTransport = None,
     ) -> None:
-        self.welcome_msg = welcome_msg
-        self.help_msg = help_msg
+        self.welcome_msg: str = welcome_msg
+        self.help_msg: str = help_msg
 
-        self._shutdown_callback = shutdown_callback
-        self._running = True
+        self._transport: DatagramTransport = transport
+        self._shutdown_callback: ShutdownCallbackType = shutdown_callback
+        self._running: bool = True
+
+    def transport_init(self, transport: DatagramTransport) -> None:
+        self._transport = transport
 
     async def run(self) -> None:
         self.cprint(self.welcome_msg)
@@ -52,3 +60,6 @@ class BaseCLI(ABC):
         result = self._shutdown_callback()
         if asyncio.iscoroutine(result):
             await result
+
+    def get_transport(self) -> DatagramTransport:
+        return self._transport
