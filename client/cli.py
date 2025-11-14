@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from decimal import Decimal, InvalidOperation
 from typing import Callable, Iterable, Awaitable
 
-from client.utils import generate_sensor_payload
+from .utils import generate_sensor_payload
 from shared import packet as pkt
 from shared.cli.base import BaseCLI
 from shared.cli.utils import configure_sensors
@@ -73,11 +73,11 @@ class ClientCLI(BaseCLI):
         elif cmd == "auto":
             self._command_auto(args)
         elif cmd == "crc":
-            self._command_crc(args)
+            await self._command_crc(args)
         elif cmd == "configure":
             await self._command_configure()
         elif cmd == "check_alive_test":
-            self._command_check_alive(args)
+            await self._command_check_alive(args)
         elif cmd in {"exit", "quit"}:
             await self._shutdown()
         else:
@@ -149,7 +149,7 @@ class ClientCLI(BaseCLI):
         return True
 
     async def _command_send(self, args: list[str]) -> None:
-        if (sensor := self._resolve_sensor(args)) is None:
+        if (sensor := await self._select_sensor(args)) is None:
             return
 
         storage = sensor.storage
@@ -183,8 +183,8 @@ class ClientCLI(BaseCLI):
 
         self.cprint(f"Automatic sending for all sensors is now {state}")
 
-    def _command_crc(self, args: list[str]) -> None:
-        if (sensor := self._resolve_sensor(args)) is None:
+    async def _command_crc(self, args: list[str]) -> None:
+        if (sensor := await self._select_sensor(args)) is None:
             return
 
         storage = sensor.storage
@@ -194,9 +194,8 @@ class ClientCLI(BaseCLI):
 
         self.cprint("The sent packet from this sensor have an invalid CRC")
 
-    def _command_check_alive(self, args: list[str]) -> None:
-        sensor = self._resolve_sensor(args)
-        if sensor is None:
+    async def _command_check_alive(self, args: list[str]) -> None:
+        if (sensor := await self._select_sensor(args)) is None:
             return
 
         sensor.storage["auto_sending"] = False
@@ -243,18 +242,30 @@ class ClientCLI(BaseCLI):
 
             return float(decimal_value)
 
-    def _resolve_sensor(self, args: list[str]) -> SensorRuntime | None:
+    async def _select_sensor(self, args: list[str]) -> SensorRuntime | None:
         if not args:
-            self.cprint("Sensor identifier is required")
-            return None
+            sensors_text = " | ".join([
+                f"({idx}) {sensor.identifier}" for idx, sensor in enumerate(self._sensors, start=1)
+            ])
+            if not sensors_text:
+                self.cprint("No sensors available")
+                return None
 
-        selector = args[0].lower()
+            cmd_input = await asyncio.to_thread(input, f"Select sensor [{sensors_text}]: ")
+            if cmd_input is None:
+                self.cprint("Sensor identifier is required")
+                return None
+
+            selector = cmd_input.strip().lower()
+        else:
+            cmd_input = args[0]
+            selector = cmd_input.lower()
 
         for idx, sensor in enumerate(self._sensors, start=1):
             if selector == str(idx) or selector == sensor.identifier.lower():
                 return sensor
 
-        self.cprint(f"Sensor '{args[0]}' was not found")
+        self.cprint(f"Sensor '{cmd_input}' was not found")
         return None
 
     def get_transports(self) -> list[DatagramTransport]:
