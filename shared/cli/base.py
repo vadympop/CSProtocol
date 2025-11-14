@@ -40,6 +40,10 @@ class BaseCLI(ABC):
     async def _handle_command(self, command: str) -> None:
         raise NotImplementedError()
 
+    @abstractmethod
+    async def _command_configure(self) -> None:
+        raise NotImplementedError()
+
     def cprint(self, text: str) -> None:
         print("\n", text, "\n")
 
