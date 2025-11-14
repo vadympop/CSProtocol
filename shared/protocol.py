@@ -2,7 +2,7 @@ from typing import Callable
 from asyncio import DatagramProtocol, DatagramTransport
 
 from shared.handlers import HandlersManager
-from shared.handlers.types import PacketAddr
+from shared.types import PacketAddr
 from shared.logger import Logger
 
 

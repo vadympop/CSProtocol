@@ -10,7 +10,8 @@ from shared.tasks import BackgroundTasksManager
 from shared.transport import TransportWrapper
 
 from .handler import HandlerObject
-from .types import CallbackType, PacketAddr
+from .types import CallbackType
+from ..types import PacketAddr
 
 
 class HandlersManager:

@@ -4,7 +4,7 @@ from typing import Callable, Awaitable
 from client.consts import DEFAULT_SERVER_ADDR
 from shared.cli.base import BaseCLI
 from shared.cli.utils import prompt_ip, prompt_port
-from shared.handlers.types import PacketAddr
+from shared.types import RemoteAddr
 from shared.sensors.manager import SensorInfo
 
 
@@ -23,7 +23,7 @@ WELCOME_MSG = "Server CLI started. Type 'configure' to start the server or 'help
 class ServerCLI(BaseCLI):
     def __init__(
             self,
-            start_hook: Callable[["ServerCLI", PacketAddr], Awaitable[DatagramTransport]],
+            start_hook: Callable[["ServerCLI", RemoteAddr], Awaitable[DatagramTransport]],
             shutdown_callback: Callable[[], None],
     ) -> None:
         super().__init__(

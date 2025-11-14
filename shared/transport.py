@@ -5,7 +5,7 @@ from asyncio import DatagramTransport
 from typing import Any
 
 from shared.codes import PacketCode
-from shared.handlers.types import PacketAddr
+from shared.types import PacketAddr
 from shared.logger import Logger
 from shared.packet import Packet
 

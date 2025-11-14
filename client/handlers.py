@@ -4,7 +4,7 @@ from typing import Any
 from shared import packet as pkt
 from shared.codes import PacketCode
 from shared.handlers import HandlersManager
-from shared.handlers.types import PacketAddr
+from shared.types import PacketAddr
 from shared.logger import Logger
 from shared.tasks import BackgroundTasksManager, BackgroundTask
 from shared.transport import TransportWrapper

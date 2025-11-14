@@ -3,7 +3,7 @@ import time
 from dataclasses import dataclass
 from typing import Dict
 
-from shared.handlers.types import PacketAddr
+from ..types import PacketAddr
 from shared.logger import Logger
 from shared.packet import CheckAlivePkt
 from shared.tasks import BackgroundTasksManager

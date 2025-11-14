@@ -10,7 +10,7 @@ from .utils import generate_sensor_payload
 from shared import packet as pkt
 from shared.cli.base import BaseCLI
 from shared.cli.utils import configure_sensors
-from shared.handlers.types import PacketAddr
+from shared.types import RemoteAddr
 
 HELP_MSG = (
     "Available commands:\n"
@@ -37,7 +37,7 @@ class SensorRuntime:
 class ClientCLI(BaseCLI):
     def __init__(
         self,
-        start_hook: Callable[["ClientCLI", PacketAddr, list[dict]], Awaitable[None]],
+        start_hook: Callable[["ClientCLI", RemoteAddr, list[dict]], Awaitable[None]],
         shutdown_callback: Callable[[], None] | Callable[[], asyncio.Future],
     ) -> None:
         self.is_configured = False

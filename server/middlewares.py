@@ -3,7 +3,8 @@ import ujson as json
 
 from typing import Any
 
-from shared.handlers.types import PacketAddr, CallbackType
+from shared.handlers.types import CallbackType
+from shared.types import PacketAddr
 from shared.logger import Logger
 from shared.packet import Packet, InvalidTokenPkt, InvalidCrcPkt
 from shared.sensors import SensorManager
