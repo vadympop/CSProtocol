@@ -4,9 +4,11 @@ import functools
 import socket
 from asyncio import DatagramTransport
 
+from shared.cli.base import ShutdownCallbackType
 from shared.logger import Logger
 from shared.protocol import CSProtocol
 from shared.cli.utils import has_debug_flag
+from shared.types import RemoteAddr
 
 from .cli import ClientCLI, SensorRuntime
 from .handlers import manager as main_handlers_manager
@@ -15,7 +17,12 @@ from .handlers import manager as main_handlers_manager
 Logger.set_config(debug=has_debug_flag())
 
 
-async def start_server(on_shutdown, cli: ClientCLI, server_addr, configured_sensors) -> None:
+async def start_server(
+        on_shutdown: ShutdownCallbackType,
+        cli: ClientCLI,
+        server_addr: RemoteAddr,
+        configured_sensors: list[dict]
+) -> None:
     loop = asyncio.get_running_loop()
     transports: list[DatagramTransport] = []
     sensor_runtimes: list[SensorRuntime] = []

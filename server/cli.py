@@ -2,7 +2,7 @@ from asyncio import DatagramTransport
 from typing import Callable, Awaitable
 
 from client.consts import DEFAULT_SERVER_ADDR
-from shared.cli.base import BaseCLI
+from shared.cli.base import BaseCLI, ShutdownCallbackType
 from shared.cli.utils import prompt_ip, prompt_port
 from shared.types import RemoteAddr
 from shared.sensors.manager import SensorInfo
@@ -24,7 +24,7 @@ class ServerCLI(BaseCLI):
     def __init__(
             self,
             start_hook: Callable[["ServerCLI", RemoteAddr], Awaitable[DatagramTransport]],
-            shutdown_callback: Callable[[], None],
+            shutdown_callback: ShutdownCallbackType,
     ) -> None:
         super().__init__(
             help_msg=HELP_MSG,

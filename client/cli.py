@@ -8,7 +8,7 @@ from typing import Callable, Iterable, Awaitable
 
 from .utils import generate_sensor_payload
 from shared import packet as pkt
-from shared.cli.base import BaseCLI
+from shared.cli.base import BaseCLI, ShutdownCallbackType
 from shared.cli.utils import configure_sensors
 from shared.types import RemoteAddr
 
@@ -38,7 +38,7 @@ class ClientCLI(BaseCLI):
     def __init__(
         self,
         start_hook: Callable[["ClientCLI", RemoteAddr, list[dict]], Awaitable[None]],
-        shutdown_callback: Callable[[], None] | Callable[[], asyncio.Future],
+        shutdown_callback: ShutdownCallbackType,
     ) -> None:
         self.is_configured = False
         self._start_hook = start_hook

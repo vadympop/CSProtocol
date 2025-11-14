@@ -3,6 +3,7 @@ import contextlib
 import functools
 import socket
 
+from shared.cli.base import ShutdownCallbackType
 from shared.types import RemoteAddr
 from shared.protocol import CSProtocol
 from shared.logger import Logger
@@ -15,7 +16,7 @@ from .handlers import manager as handlers_manager
 Logger.set_config(debug=has_debug_flag())
 
 
-async def start_server(on_shutdown, cli: ServerCLI, local_addr: RemoteAddr) -> None:
+async def start_server(on_shutdown: ShutdownCallbackType, cli: ServerCLI, local_addr: RemoteAddr) -> None:
     loop = asyncio.get_running_loop()
 
     try:
