@@ -6,7 +6,7 @@ from typing import Sequence, Any, Dict
 from shared.codes import PacketCode
 from shared.middlewares.types import MiddlewareType, NextMiddlewareType
 from shared.handlers.types import CallbackType
-from shared.packet import Packet
+from shared.packets import Packet
 
 
 class MiddlewareManager:

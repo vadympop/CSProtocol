@@ -4,7 +4,7 @@ from typing import Callable, Dict, Any
 
 from shared.codes import PacketCode
 from shared.middlewares import MiddlewareManager
-from shared.packet import Packet
+from shared.packets import Packet
 from shared.sensors import SensorManager
 from shared.tasks import BackgroundTasksManager
 from shared.transport import TransportWrapper

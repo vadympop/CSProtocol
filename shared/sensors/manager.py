@@ -5,7 +5,7 @@ from typing import Dict
 
 from ..types import PacketAddr
 from shared.logger import Logger
-from shared.packet import CheckAlivePkt
+from shared.packets import CheckAlivePkt
 from shared.tasks import BackgroundTasksManager
 from shared.transport import TransportWrapper
 

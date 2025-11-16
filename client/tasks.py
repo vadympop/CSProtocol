@@ -1,8 +1,7 @@
-import asyncio
 import time
 from typing import Any
 
-from shared import packet as pkt
+from shared.packets import packet as pkt
 from shared.codes import PacketCode
 from shared.handlers import HandlersManager
 from shared.types import PacketAddr

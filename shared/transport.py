@@ -7,7 +7,7 @@ from typing import Any
 from shared.codes import PacketCode
 from shared.types import PacketAddr
 from shared.logger import Logger
-from shared.packet import Packet
+from shared.packets import Packet
 
 
 class TransportWrapper:

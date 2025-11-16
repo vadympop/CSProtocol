@@ -7,7 +7,7 @@ from decimal import Decimal, InvalidOperation
 from typing import Callable, Iterable, Awaitable
 
 from .utils import generate_sensor_payload
-from shared import packet as pkt
+from shared.packets import packet as pkt
 from shared.cli.base import BaseCLI, ShutdownCallbackType
 from shared.cli.utils import configure_sensors
 from shared.types import RemoteAddr
