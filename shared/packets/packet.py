@@ -49,6 +49,7 @@ class Packet(ABC):
         data_in_dict = asdict(self)
         data_in_dict["code"] = int(data_in_dict["code"])
         data_in_dict["timestamp"] = data_in_dict["timestamp"].timestamp()
+        data_in_dict["length"] = 0
 
         return data_in_dict
 
