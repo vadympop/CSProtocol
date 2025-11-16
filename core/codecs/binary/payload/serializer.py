@@ -10,14 +10,13 @@ class PayloadSerializer:
     type_name: ClassVar[str]
     code: ClassVar[int]
     field_definitions: ClassVar[tuple[PayloadField, ...]]
-    required_fields: ClassVar[tuple[str, ...]] | None = None
 
     def __init__(self) -> None:
         if not getattr(self, "field_definitions", None):
             raise ValueError("Payload serializers must define field_definitions")
 
         self._fields: tuple[PayloadField, ...] = tuple(self.field_definitions)
-        self._required_fields: tuple[str, ...] = self.required_fields or tuple(
+        self._required_fields: tuple[str, ...] = tuple(
             name for field in self._fields for name in field.required_names
         )
         self._struct_format = "!" + "".join(field.struct_format for field in self._fields)
