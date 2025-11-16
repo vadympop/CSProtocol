@@ -9,7 +9,7 @@ from dataclasses import dataclass, asdict, field, fields
 from typing import Type, Dict, Callable, TypeVar, Any
 
 from core.codes import PacketCode
-from .flags import PacketFlags
+from .flags import PacketFlags, make_flags
 
 _PACKET_REGISTRY: Dict[PacketCode, Type["Packet"]] = {}
 PacketT = TypeVar("PacketT", bound="Packet")
@@ -50,6 +50,7 @@ class Packet(ABC):
         data_in_dict["code"] = int(data_in_dict["code"])
         data_in_dict["timestamp"] = data_in_dict["timestamp"].timestamp()
         data_in_dict["length"] = 0
+        data_in_dict["flags"] = make_flags(data_in_dict)
 
         return data_in_dict
 
@@ -128,6 +129,7 @@ class SensorRegistrationPkt(Packet):
 class SensorDataPkt(Packet):
     __CODE__ = PacketCode.SENSOR_DATA
 
+    sensor_type: str
     payload: dict
     token: int
     is_low_battery: bool = False
@@ -139,6 +141,7 @@ class SensorDataPkt(Packet):
             payload=payload["payload"],
             token=payload["token"],
             crc=payload["crc"],
+            sensor_type=payload["sensor_type"],
             is_low_battery=PacketFlags.LOW_BATTERY in payload["flags"],
             timestamp=cls.parse_timestamp(payload),
         )

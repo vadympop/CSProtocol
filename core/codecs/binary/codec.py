@@ -7,8 +7,7 @@ from ..base import BaseCodec
 class BinaryCodec(BaseCodec):
     def encode(self, packet: dict) -> bytes:
         str_bits = ""
-        flags = make_flags(packet)
-        packet["flags"] = flags
+        flags = packet.get("flags", 0)
 
         for segment in PACKET_STRUCTURE:
             if not segment.has_flag(flags):
