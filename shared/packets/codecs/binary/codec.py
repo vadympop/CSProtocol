@@ -1,6 +1,6 @@
 from shared.packets.flags import make_flags
 from .segments import PACKET_STRUCTURE
-from .utils import bits_to_bytes
+from .utils import bits_to_bytes, bytes_to_bits
 from ..base import BaseCodec
 
 
@@ -23,17 +23,17 @@ class BinaryCodec(BaseCodec):
         return bits_to_bytes(str_bits)
 
     def decode(self, data: bytes) -> dict:
-        data = {"flags": 0}
-        bits = "".join(f"{b:08b}" for b in data)
+        result = {"flags": 0}
+        bits = bytes_to_bits(data)
         for segment in PACKET_STRUCTURE:
-            if not segment.has_flag(data["flags"]):
+            if not segment.has_flag(result["flags"]):
                 continue
 
             if segment.is_consume_remains:
-                data[segment.field_name] = segment.decoder(bits)
+                result[segment.field_name] = segment.decoder(bits)
                 break
 
-            data[segment.field_name] = segment.decoder(bits[:segment.bits_count], data)
+            result[segment.field_name] = segment.decoder(bits[:segment.bits_count], result)
             bits = bits[segment.bits_count:]
 
-        return data
+        return result

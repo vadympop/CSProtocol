@@ -15,6 +15,10 @@ def bits_to_bytes(bits: str) -> bytes:
     return value.to_bytes(length, "big")
 
 
+def bytes_to_bits(data: bytes) -> str:
+    return "".join(f"{byte:08b}" for byte in data)
+
+
 def parse_combined_bits(value: int, names: list[str], bits: list[int]) -> dict:
     total_bits = sum(bits)
     if total_bits % 8 != 0:
@@ -27,6 +31,25 @@ def parse_combined_bits(value: int, names: list[str], bits: list[int]) -> dict:
         mask = (1 << bit_size) - 1
         field_value = (value >> shift) & mask
         result[name] = field_value
+
+    return result
+
+
+def compose_combined_bits(values: dict, names: list[str], bits: list[int]) -> int:
+    total_bits = sum(bits)
+    if total_bits % 8 != 0:
+        raise ValueError("Total bits must be divisible by 8")
+
+    result = 0
+    shift = total_bits
+    for name, bit_size in zip(names, bits):
+        if name not in values:
+            raise KeyError(f"Missing value for '{name}'")
+
+        shift -= bit_size
+        mask = (1 << bit_size) - 1
+        field_value = values[name] & mask
+        result |= field_value << shift
 
     return result
 
