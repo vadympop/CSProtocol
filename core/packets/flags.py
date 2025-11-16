@@ -8,7 +8,7 @@ class PacketFlags(IntFlag):
     PAYLOAD = 1 << 3
 
 
-def make_flags(packet: dict) -> int:
+def extract_flags(packet: dict) -> int:
     flags = 0
     if "payload" in packet:
         flags |= PacketFlags.PAYLOAD

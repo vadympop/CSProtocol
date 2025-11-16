@@ -9,7 +9,7 @@ from dataclasses import dataclass, asdict, field, fields
 from typing import Type, Dict, Callable, TypeVar, Any
 
 from core.codes import PacketCode
-from .flags import PacketFlags, make_flags
+from .flags import PacketFlags, extract_flags
 
 _PACKET_REGISTRY: Dict[PacketCode, Type["Packet"]] = {}
 PacketT = TypeVar("PacketT", bound="Packet")
@@ -50,7 +50,7 @@ class Packet(ABC):
         data_in_dict["code"] = int(data_in_dict["code"])
         data_in_dict["timestamp"] = data_in_dict["timestamp"].timestamp()
         data_in_dict["length"] = 0
-        data_in_dict["flags"] = make_flags(data_in_dict)
+        data_in_dict["flags"] = extract_flags(data_in_dict)
 
         return data_in_dict
 
