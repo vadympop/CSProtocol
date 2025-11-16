@@ -8,6 +8,8 @@ class BinaryCodec(BaseCodec):
     def encode(self, packet: dict) -> bytes:
         str_bits = ""
         flags = make_flags(packet)
+        packet["flags"] = flags
+
         for segment in PACKET_STRUCTURE:
             if not segment.has_flag(flags):
                 continue
