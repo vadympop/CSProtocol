@@ -1,6 +1,8 @@
 from dataclasses import dataclass, field
 from typing import Callable, Any
 
+from shared.packets.flags import PacketFlags
+
 
 @dataclass
 class BinarySegment:
@@ -8,13 +10,14 @@ class BinarySegment:
     field_name: str
     encoder: Callable[[int, "BinarySegment", dict], str]
     decoder: Callable[[str, dict], Any]
-    flag: int = field(default=-1, kw_only=True)
+    flag: PacketFlags = field(default=None, kw_only=True)
 
-    def has_flag(self, flags: int) -> bool:
-        if self.flag == -1:
+    def has_flag(self, flags: int | PacketFlags) -> bool:
+        if self.flag is None:
             return True
 
-        return self.flag in flags
+        resolved_flags = PacketFlags(flags)
+        return bool(resolved_flags & self.flag)
 
     @property
     def is_consume_remains(self) -> bool:
