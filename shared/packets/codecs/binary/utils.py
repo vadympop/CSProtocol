@@ -1,4 +1,4 @@
-from .segments import PAYLOAD_STRUCTURE
+from .segments.payload_structure import PAYLOAD_STRUCTURE
 from .segments.consts import BITS_COUNT_TO_STRUCT
 
 

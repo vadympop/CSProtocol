@@ -1,6 +1,6 @@
 import struct
 
-from . import PAYLOAD_STRUCTURE
+from .payload_structure import PAYLOAD_STRUCTURE
 from .consts import SENSOR_TYPES
 from ..utils import bits_to_bytes, parse_combined_bits, generate_struct_format
 
