@@ -1,7 +1,7 @@
 from dataclasses import dataclass, field
 from typing import Callable, Any
 
-from shared.packets.flags import PacketFlags
+from core.packets.flags import PacketFlags
 
 
 @dataclass

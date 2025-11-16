@@ -1,4 +1,4 @@
-from shared.packets.flags import PacketFlags
+from core.packets.flags import PacketFlags
 from .decoders import int_decoder, payload_decoder
 from .encoders import int_encoder, length_encoder, payload_encoder
 from .segment import BinarySegment

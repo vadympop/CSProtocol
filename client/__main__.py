@@ -4,11 +4,11 @@ import functools
 import socket
 from asyncio import DatagramTransport
 
-from shared.cli.base import ShutdownCallbackType
-from shared.logger import Logger
-from shared.protocol import CSProtocol
-from shared.cli.utils import has_debug_flag
-from shared.types import RemoteAddr
+from core.cli.base import ShutdownCallbackType
+from core.logger import Logger
+from core.protocol import CSProtocol
+from core.cli.utils import has_debug_flag
+from core.types import RemoteAddr
 
 from .cli import ClientCLI, SensorRuntime
 from .handlers import manager as main_handlers_manager

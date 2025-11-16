@@ -1,9 +1,9 @@
 from typing import Callable
 from asyncio import DatagramProtocol, DatagramTransport
 
-from shared.handlers import HandlersManager
-from shared.types import PacketAddr
-from shared.logger import Logger
+from core.handlers import HandlersManager
+from core.types import PacketAddr
+from core.logger import Logger
 
 
 class CSProtocol(DatagramProtocol):

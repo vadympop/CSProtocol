@@ -1,13 +1,13 @@
 import time
 from typing import Any
 
-from shared.packets import packet as pkt
-from shared.codes import PacketCode
-from shared.handlers import HandlersManager
-from shared.types import PacketAddr
-from shared.logger import Logger
-from shared.tasks import BackgroundTasksManager, BackgroundTask
-from shared.transport import TransportWrapper
+from core.packets import packet as pkt
+from core.codes import PacketCode
+from core.handlers import HandlersManager
+from core.types import PacketAddr
+from core.logger import Logger
+from core.tasks import BackgroundTasksManager, BackgroundTask
+from core.transport import TransportWrapper
 
 from .consts import HANDLERS_INITIAL_STORAGE
 from .tasks import send_data, check_data_ack, check_register_ack

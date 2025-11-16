@@ -2,8 +2,8 @@ import asyncio
 import time
 from typing import TYPE_CHECKING
 
-from shared.logger import Logger
-from shared.tasks import BackgroundTask, BackgroundTasksManager
+from core.logger import Logger
+from core.tasks import BackgroundTask, BackgroundTasksManager
 
 if TYPE_CHECKING:
     from .manager import SensorManager, SensorInfo

@@ -2,10 +2,10 @@ from asyncio import DatagramTransport
 from typing import Callable, Awaitable
 
 from client.consts import DEFAULT_SERVER_ADDR
-from shared.cli.base import BaseCLI, ShutdownCallbackType
-from shared.cli.utils import prompt_ip, prompt_port
-from shared.types import RemoteAddr
-from shared.sensors.manager import SensorInfo
+from core.cli.base import BaseCLI, ShutdownCallbackType
+from core.cli.utils import prompt_ip, prompt_port
+from core.types import RemoteAddr
+from core.sensors.manager import SensorInfo
 
 
 HELP_MSG = (

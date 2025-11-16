@@ -3,12 +3,12 @@ import ujson as json
 
 from typing import Any
 
-from shared.handlers.types import CallbackType
-from shared.types import PacketAddr
-from shared.logger import Logger
-from shared.packets import Packet, InvalidTokenPkt, InvalidCrcPkt
-from shared.sensors import SensorManager
-from shared.transport import TransportWrapper
+from core.handlers.types import CallbackType
+from core.types import PacketAddr
+from core.logger import Logger
+from core.packets import Packet, InvalidTokenPkt, InvalidCrcPkt
+from core.sensors import SensorManager
+from core.transport import TransportWrapper
 
 
 def check_token(

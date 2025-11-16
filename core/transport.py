@@ -4,10 +4,10 @@ import ujson as json
 from asyncio import DatagramTransport
 from typing import Any
 
-from shared.codes import PacketCode
-from shared.types import PacketAddr
-from shared.logger import Logger
-from shared.packets import Packet
+from core.codes import PacketCode
+from core.types import PacketAddr
+from core.logger import Logger
+from core.packets import Packet
 
 
 class TransportWrapper:

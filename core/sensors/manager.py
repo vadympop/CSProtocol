@@ -4,10 +4,10 @@ from dataclasses import dataclass
 from typing import Dict
 
 from ..types import PacketAddr
-from shared.logger import Logger
-from shared.packets import CheckAlivePkt
-from shared.tasks import BackgroundTasksManager
-from shared.transport import TransportWrapper
+from core.logger import Logger
+from core.packets import CheckAlivePkt
+from core.tasks import BackgroundTasksManager
+from core.transport import TransportWrapper
 
 from .tasks import SensorsTasksManager
 

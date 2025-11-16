@@ -1,4 +1,4 @@
-from shared.packets.flags import make_flags
+from core.packets.flags import make_flags
 from .segments import PACKET_STRUCTURE
 from .utils import bits_to_bytes, bytes_to_bits
 from ..base import BaseCodec

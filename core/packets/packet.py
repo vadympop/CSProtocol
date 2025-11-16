@@ -8,7 +8,7 @@ from abc import ABC
 from dataclasses import dataclass, asdict, field, fields
 from typing import Type, Dict, Callable, TypeVar, Any
 
-from shared.codes import PacketCode
+from core.codes import PacketCode
 from .flags import PacketFlags
 
 _PACKET_REGISTRY: Dict[PacketCode, Type["Packet"]] = {}

@@ -7,10 +7,10 @@ from decimal import Decimal, InvalidOperation
 from typing import Callable, Iterable, Awaitable
 
 from .utils import generate_sensor_payload
-from shared.packets import packet as pkt
-from shared.cli.base import BaseCLI, ShutdownCallbackType
-from shared.cli.utils import configure_sensors
-from shared.types import RemoteAddr
+from core.packets import packet as pkt
+from core.cli.base import BaseCLI, ShutdownCallbackType
+from core.cli.utils import configure_sensors
+from core.types import RemoteAddr
 
 HELP_MSG = (
     "Available commands:\n"

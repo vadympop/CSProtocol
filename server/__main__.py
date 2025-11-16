@@ -3,11 +3,11 @@ import contextlib
 import functools
 import socket
 
-from shared.cli.base import ShutdownCallbackType
-from shared.types import RemoteAddr
-from shared.protocol import CSProtocol
-from shared.logger import Logger
-from shared.cli.utils import has_debug_flag
+from core.cli.base import ShutdownCallbackType
+from core.types import RemoteAddr
+from core.protocol import CSProtocol
+from core.logger import Logger
+from core.cli.utils import has_debug_flag
 
 from .cli import ServerCLI
 from .handlers import manager as handlers_manager

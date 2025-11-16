@@ -2,12 +2,12 @@ from asyncio import DatagramTransport
 from collections import defaultdict
 from typing import Callable, Dict, Any
 
-from shared.codes import PacketCode
-from shared.middlewares import MiddlewareManager
-from shared.packets import Packet
-from shared.sensors import SensorManager
-from shared.tasks import BackgroundTasksManager
-from shared.transport import TransportWrapper
+from core.codes import PacketCode
+from core.middlewares import MiddlewareManager
+from core.packets import Packet
+from core.sensors import SensorManager
+from core.tasks import BackgroundTasksManager
+from core.transport import TransportWrapper
 
 from .handler import HandlerObject
 from .types import CallbackType

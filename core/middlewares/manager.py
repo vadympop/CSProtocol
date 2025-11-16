@@ -3,10 +3,10 @@ import functools
 from collections import defaultdict
 from typing import Sequence, Any, Dict
 
-from shared.codes import PacketCode
-from shared.middlewares.types import MiddlewareType, NextMiddlewareType
-from shared.handlers.types import CallbackType
-from shared.packets import Packet
+from core.codes import PacketCode
+from core.middlewares.types import MiddlewareType, NextMiddlewareType
+from core.handlers.types import CallbackType
+from core.packets import Packet
 
 
 class MiddlewareManager:
