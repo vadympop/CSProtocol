@@ -1,6 +1,3 @@
-from .segments.payload_structure import PAYLOAD_STRUCTURE
-from .segments.consts import BITS_COUNT_TO_STRUCT
-
 
 def bits_to_bytes(bits: str) -> bytes:
     bits = list(map(lambda x: int(x), bits))
@@ -60,18 +57,3 @@ def fit_to_bits(value: int, n: int) -> int:
 
 def fit_to_str_bits(value: int, n: int) -> str:
     return bin(fit_to_bits(value, n))[2:].zfill(n)
-
-
-def generate_struct_format(sensor_type: str) -> str:
-    result = "!"
-    for field in PAYLOAD_STRUCTURE[sensor_type]:
-        if isinstance(field[0], str):
-            result += field[1]
-        elif isinstance(field[0], list):
-            bits_sum = sum(field[1])
-            if bits_sum not in BITS_COUNT_TO_STRUCT:
-                raise ValueError("Invalid combined field's bits sum")
-
-            result += BITS_COUNT_TO_STRUCT[bits_sum]
-
-    return result
