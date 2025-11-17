@@ -35,6 +35,7 @@ def validate_payload(func: Callable[..., PacketT]) -> Callable[..., PacketT]:
 @dataclass(kw_only=True)
 class Packet(ABC):
     __CODE__ = PacketCode.GLOBAL  # Just placeholder
+    __required_fields__ = ()
     _codec: ClassVar[BaseCodec] = BinaryCodec()
 
     timestamp: datetime.datetime = field(default_factory=datetime.datetime.now)
@@ -85,7 +86,9 @@ class Packet(ABC):
 
     @classmethod
     def validate(cls, data: dict) -> bool:
-        if not all(k.name in data for k in fields(cls)):
+        all_fields = map(lambda x: x.name, fields(cls))
+        required_fields = all_fields if not cls.__required_fields__ else cls.__required_fields__
+        if not all(k in data for k in required_fields):
             return False
 
         with contextlib.suppress(ValueError):
@@ -137,6 +140,7 @@ class SensorRegistrationPkt(Packet):
 @register_packet
 @dataclass
 class SensorDataPkt(Packet):
+    __required_fields__ = ("sensor_type", "payload", "token", "timestamp", "crc", "code")
     __CODE__ = PacketCode.SENSOR_DATA
 
     sensor_type: str
