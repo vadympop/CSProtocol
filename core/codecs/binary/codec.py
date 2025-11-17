@@ -30,7 +30,7 @@ class BinaryCodec(BaseCodec):
                 continue
 
             if segment.is_consume_remains:
-                result[segment.field_name] = segment.decoder(bits)
+                result[segment.field_name] = segment.decoder(bits, result)
                 break
 
             result[segment.field_name] = segment.decoder(bits[:segment.bits_count], result)
