@@ -27,7 +27,11 @@ def send_data(transport: TransportWrapper, storage: dict[str, Any]) -> None:
     storage["data_sent_at"] = time.time()
     storage["is_data_ack"] = False
 
-    transport.sendto(pkt.SensorDataPkt(token=token, payload=generated_payload), server_addr)
+    transport.sendto(pkt.SensorDataPkt(
+        token=token,
+        payload=generated_payload,
+        sensor_type=sensor_conf["sensor_type"]
+    ), server_addr)
 
 
 def check_data_ack(transport: TransportWrapper, storage: dict[str, Any]) -> None:

@@ -141,7 +141,12 @@ class ClientCLI(BaseCLI):
         storage["data_sent_at"] = time.time()
 
         transport.sendto(
-            pkt.SensorDataPkt(token=token, payload=payload, is_low_battery=is_low_battery),
+            pkt.SensorDataPkt(
+                token=token,
+                sensor_type=sensor.identifier,
+                payload=payload,
+                is_low_battery=is_low_battery
+            ),
             storage["server_addr"],
             force_invalid_crc=force_invalid_crc
         )
