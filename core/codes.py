@@ -8,6 +8,7 @@ class PacketCode(str, Enum):
     REGISTRATION_ACK = "10"
     DATA_ACK = "11"
     CHECK_ALIVE = "12"
+    INVALID_PKT = "30"
     INVALID_TOKEN = "29"
     INVALID_CRC = "28"
     # < 10 - sensor codes

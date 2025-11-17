@@ -203,3 +203,9 @@ class InvalidTokenPkt(Packet):
 @dataclass
 class InvalidCrcPkt(Packet):
     __CODE__ = PacketCode.INVALID_CRC
+
+
+@register_packet
+@dataclass
+class InvalidPkt(Packet):
+    __CODE__ = PacketCode.INVALID_PKT

@@ -4,7 +4,7 @@ from typing import Callable, Dict, Any
 
 from core.codes import PacketCode
 from core.middlewares import MiddlewareManager
-from core.packets import Packet
+from core.packets import Packet, InvalidPkt
 from core.sensors import SensorManager
 from core.tasks import BackgroundTasksManager
 from core.transport import TransportWrapper
@@ -91,7 +91,12 @@ class HandlersManager:
         if self.server_mode:
             self.sensors.update(addr)
 
-        packet = Packet.from_any_payload(data)
+        try:
+            packet = Packet.from_any_payload(data)
+        except ValueError:
+            self._transport.sendto(InvalidPkt(), addr)
+            return
+
         found_handlers = self._handlers.get(packet.code, [])
 
         for handler in found_handlers:

@@ -7,5 +7,6 @@ from .packet import (
     CheckAlivePkt,
     CheckAliveResponsePkt,
     InvalidCrcPkt,
-    InvalidTokenPkt
+    InvalidTokenPkt,
+    InvalidPkt
 )
