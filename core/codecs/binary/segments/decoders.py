@@ -1,5 +1,5 @@
 from ..consts import INT_TO_SENSOR_TYPE
-from ..payload.structure import get_serializer_by_code
+from ..payload.structure import get_serializer_by_name
 from ..utils import bits_to_bytes
 
 
@@ -17,6 +17,7 @@ def payload_decoder(bits: str, data: dict) -> dict:
     if len(bits) > length:
         bits = bits[:length]
 
-    serializer = get_serializer_by_code(data["sensor_type"])
+    # In upper decoder int sensor type is already converting to string sensor type
+    serializer = get_serializer_by_name(data["sensor_type"])
     payload_bytes = bits_to_bytes(bits)
     return serializer.decode_payload(payload_bytes)
