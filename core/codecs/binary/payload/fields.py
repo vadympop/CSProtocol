@@ -58,7 +58,8 @@ class ScalarPayloadField(PayloadField):
         return int(payload[self.name] * self.decimals_multipliers[0])
 
     def unpack(self, value: int) -> dict[str, int | float]:
-        return {self.name: value / self.decimals_multipliers[0]}
+        result = value / self.decimals_multipliers[0] if self.decimals_multipliers[0] > 0 else int(value)
+        return {self.name: result}
 
 
 @dataclass(frozen=True)
