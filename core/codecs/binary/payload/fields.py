@@ -18,6 +18,11 @@ class PayloadField(ABC):
     def required_names(self) -> tuple[str, ...]:
         raise NotImplementedError
 
+    @property
+    @abstractmethod
+    def decimals_multipliers(self) -> tuple[int, ...]:
+        raise NotImplementedError
+
     @abstractmethod
     def pack(self, payload: Mapping[str, int]) -> int:
         raise NotImplementedError
@@ -31,6 +36,7 @@ class PayloadField(ABC):
 class ScalarPayloadField(PayloadField):
     name: str
     format_char: str
+    decimal: int
 
     @property
     def struct_format(self) -> str:
@@ -40,24 +46,31 @@ class ScalarPayloadField(PayloadField):
     def required_names(self) -> tuple[str, ...]:
         return (self.name,)
 
-    def pack(self, payload: Mapping[str, int]) -> int:
+    @property
+    def decimals_multipliers(self) -> tuple[int, ...]:
+        multiplier = 10**self.decimal if self.decimal > 0 else 1
+        return (multiplier,)
+
+    def pack(self, payload: dict[str, int | float]) -> int:
         if self.name not in payload:
             raise KeyError(f"Missing payload field '{self.name}'")
 
-        return payload[self.name]
+        return int(payload[self.name] * self.decimals_multipliers[0])
 
-    def unpack(self, value: int) -> dict[str, int]:
-        return {self.name: value}
+    def unpack(self, value: int) -> dict[str, int | float]:
+        return {self.name: value / self.decimals_multipliers[0]}
 
 
 @dataclass(frozen=True)
 class CombinedPayloadField(PayloadField):
     names: tuple[str, ...]
     bits: tuple[int, ...]
+    decimals: tuple[int, ...]
 
     def __post_init__(self) -> None:
         if len(self.names) != len(self.bits):
             raise ValueError("Combined payload field names and bits must align")
+
         bits_sum = sum(self.bits)
         if bits_sum not in BITS_COUNT_TO_STRUCT:
             raise ValueError("Invalid combined field bits sum")
@@ -70,8 +83,27 @@ class CombinedPayloadField(PayloadField):
     def required_names(self) -> tuple[str, ...]:
         return self.names
 
-    def pack(self, payload: Mapping[str, int]) -> int:
+    @property
+    def decimals_multipliers(self) -> tuple[int, ...]:
+        return tuple((10**decimal if decimal > 0 else 1) for decimal in self.decimals)
+
+    def pack(self, payload: dict[str, int | float]) -> int:
+        filtered_payload = {k: v for k, v in payload.items() if k in self.required_names}
+        payload = {
+            k: int(v*multiplier)
+            for [k, v], multiplier in zip(filtered_payload.items(), self.decimals_multipliers)
+        }
         return compose_combined_bits(payload, list(self.names), list(self.bits))
 
-    def unpack(self, value: int) -> dict[str, int]:
-        return parse_combined_bits(value, list(self.names), list(self.bits))
+    def unpack(self, value: int) -> dict[str, int | float]:
+        result = parse_combined_bits(value, list(self.names), list(self.bits))
+        return self._format_after_unpacking(result)
+
+    def _format_after_unpacking(self, data: dict[str, int | float]) -> dict[str, int | float]:
+        for [k, v], multiplier in zip(data.items(), self.decimals_multipliers):
+            if multiplier == 1:
+                data[k] = int(v)
+            else:
+                data[k] = v / multiplier
+
+        return data

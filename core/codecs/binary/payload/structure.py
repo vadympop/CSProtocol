@@ -8,10 +8,10 @@ class TemperaturePayloadSerializer(PayloadSerializer):
     type_name = "TEMP"
     code = 0
     field_definitions = (
-        ScalarPayloadField("temperature", "h"),
-        ScalarPayloadField("humidity", "H"),
-        ScalarPayloadField("dew_point", "h"),
-        ScalarPayloadField("pressure", "H"),
+        ScalarPayloadField("temperature", "h", 1),
+        ScalarPayloadField("humidity", "H", 1),
+        ScalarPayloadField("dew_point", "h", 1),
+        ScalarPayloadField("pressure", "I", 2),
     )
 
 
@@ -19,10 +19,10 @@ class WindPayloadSerializer(PayloadSerializer):
     type_name = "WIND"
     code = 1
     field_definitions = (
-        ScalarPayloadField("wind_speed", "H"),
-        ScalarPayloadField("wind_gust", "H"),
-        ScalarPayloadField("wind_direction", "H"),
-        ScalarPayloadField("turbulence", "B"),
+        ScalarPayloadField("wind_speed", "H", 1),
+        ScalarPayloadField("wind_gust", "H", 1),
+        ScalarPayloadField("wind_direction", "H", 0),
+        ScalarPayloadField("turbulence", "B", 1),
     )
 
 
@@ -30,9 +30,9 @@ class RainPayloadSerializer(PayloadSerializer):
     type_name = "RAIN"
     code = 2
     field_definitions = (
-        ScalarPayloadField("rainfall", "H"),
-        ScalarPayloadField("soil_moisture", "H"),
-        CombinedPayloadField(("flood_risk", "rain_duration"), (2, 6)),
+        ScalarPayloadField("rainfall", "H", 1),
+        ScalarPayloadField("soil_moisture", "H", 1),
+        CombinedPayloadField(("flood_risk", "rain_duration"), (2, 6), (0, 0)),
     )
 
 
@@ -40,9 +40,9 @@ class AirPayloadSerializer(PayloadSerializer):
     type_name = "AIR"
     code = 3
     field_definitions = (
-        ScalarPayloadField("co2", "H"),
-        ScalarPayloadField("ozone", "H"),
-        ScalarPayloadField("air_quality_index", "H"),
+        ScalarPayloadField("co2", "H", 0),
+        ScalarPayloadField("ozone", "H", 1),
+        ScalarPayloadField("air_quality_index", "H", 0),
     )
 
 

@@ -1,5 +1,5 @@
 import struct
-from typing import ClassVar,  Mapping
+from typing import ClassVar
 
 from .fields import PayloadField
 from ..utils import bytes_to_bits, bits_to_bytes
@@ -33,20 +33,20 @@ class PayloadSerializer:
     def field_names(self) -> tuple[str, ...]:
         return self._required_fields
 
-    def validate_payload(self, payload: Mapping[str, int]) -> None:
+    def validate_payload(self, payload: dict[str, int]) -> None:
         missing = [name for name in self._required_fields if name not in payload]
         if missing:
             raise KeyError(f"Missing payload values for {missing!r}")
 
-    def encode_payload(self, payload: Mapping[str, int]) -> bytes:
+    def encode_payload(self, payload: dict[str, int | float]) -> bytes:
         self.validate_payload(payload)
         packed_values = tuple(field.pack(payload) for field in self._fields)
         return struct.pack(self._struct_format, *packed_values)
 
-    def encode_to_bits(self, payload: Mapping[str, int]) -> str:
+    def encode_to_bits(self, payload: dict[str, int | float]) -> str:
         return bytes_to_bits(self.encode_payload(payload))
 
-    def decode_payload(self, payload_bytes: bytes) -> dict[str, int]:
+    def decode_payload(self, payload_bytes: bytes) -> dict[str, int | float]:
         parsed_fields = struct.unpack(self._struct_format, payload_bytes)
         result: dict[str, int] = {}
 
@@ -55,5 +55,5 @@ class PayloadSerializer:
 
         return result
 
-    def decode_from_bits(self, bits: str) -> dict[str, int]:
+    def decode_from_bits(self, bits: str) -> dict[str, int | float]:
         return self.decode_payload(bits_to_bytes(bits))
