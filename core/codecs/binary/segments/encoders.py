@@ -1,5 +1,6 @@
 from typing import TYPE_CHECKING
 
+from ..consts import SENSOR_TYPE_TO_INT
 from ..payload.serializer import PayloadSerializer
 from ..payload.structure import get_serializer_by_name, get_serializer_by_code
 from ..utils import fit_to_str_bits, bytes_to_bits
@@ -12,6 +13,10 @@ _PAYLOAD_BITS_CACHE_KEY = "__payload_bits_cache__"
 
 def int_encoder(value: int, segment: "BinarySegment", _) -> str:
     return fit_to_str_bits(value, segment.bits_count)
+
+
+def sensor_type_encoder(value: str, segment: "BinarySegment", _) -> str:
+    return fit_to_str_bits(SENSOR_TYPE_TO_INT[value], segment.bits_count)
 
 
 def length_encoder(_, segment: "BinarySegment", packet: dict) -> str:

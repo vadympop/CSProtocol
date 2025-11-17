@@ -1,9 +1,15 @@
+from ..consts import INT_TO_SENSOR_TYPE
 from ..payload.structure import get_serializer_by_code
 from ..utils import bits_to_bytes
 
 
 def int_decoder(bits: str, _) -> int:
     return int(bits, 2)
+
+
+def sensor_type_decoder(bits: str, _) -> str:
+    int_value = int(bits, 2)
+    return INT_TO_SENSOR_TYPE[int_value]
 
 
 def payload_decoder(bits: str, data: dict) -> dict:

@@ -8,7 +8,7 @@ from core.packets.flags import PacketFlags
 class BinarySegment:
     bits_count: int
     field_name: str
-    encoder: Callable[[int, "BinarySegment", dict], str]
+    encoder: Callable[[Any, "BinarySegment", dict], str]
     decoder: Callable[[str, dict], Any]
     flag: PacketFlags = field(default=None, kw_only=True)
 
