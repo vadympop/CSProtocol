@@ -1,5 +1,4 @@
 import time
-import ujson as json
 
 from asyncio import DatagramTransport
 from typing import Any
@@ -20,9 +19,9 @@ class TransportWrapper:
         packet_bytes = packet.to_bytes()
 
         if force_invalid_crc:
-            payload = json.loads(packet_bytes.decode("utf-8"))
+            payload = packet.to_dict()
             payload["crc"] = (payload["crc"] + 1) & 0xFFFFFFFF
-            packet_bytes = json.dumps(payload, separators=(",", ":")).encode("utf-8")
+            packet_bytes = Packet.encode_dict(payload)
 
         self._transport.sendto(packet_bytes, addr)
         self._last_packets[packet.code] = {"packet": packet, "addr": addr, "time": time.time()}

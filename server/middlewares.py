@@ -1,6 +1,3 @@
-import zlib
-import ujson as json
-
 from typing import Any
 
 from core.handlers.types import CallbackType
@@ -39,9 +36,8 @@ def check_crc(
 
     recv_crc = packet.crc
     dict_packet = packet.to_dict()
-    dict_packet.pop("crc")
 
-    recalculated_crc = zlib.crc32(json.dumps(dict_packet, separators=(",", ":")).encode("utf-8")) & 0xFFFFFFFF
+    recalculated_crc = Packet.calculate_crc(dict_packet)
     if recv_crc != recalculated_crc:
         transport.sendto(InvalidCrcPkt(), addr)
         Logger.invalid_data(sensors.get_sensor_id(addr))

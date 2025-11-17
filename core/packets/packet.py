@@ -2,14 +2,15 @@ import contextlib
 import datetime
 import functools
 import zlib
-import ujson as json
 
 from abc import ABC
 from dataclasses import dataclass, asdict, field, fields
-from typing import Type, Dict, Callable, TypeVar, Any
+from typing import Type, Dict, Callable, TypeVar, Any, ClassVar
 
 from core.codes import PacketCode
 from .flags import PacketFlags, extract_flags
+from ..codecs.base import BaseCodec
+from ..codecs.binary.codec import BinaryCodec
 
 _PACKET_REGISTRY: Dict[PacketCode, Type["Packet"]] = {}
 PacketT = TypeVar("PacketT", bound="Packet")
@@ -34,6 +35,7 @@ def validate_payload(func: Callable[..., PacketT]) -> Callable[..., PacketT]:
 @dataclass(kw_only=True)
 class Packet(ABC):
     __CODE__ = PacketCode.GLOBAL  # Just placeholder
+    _codec: ClassVar[BaseCodec] = BinaryCodec()
 
     timestamp: datetime.datetime = field(default_factory=datetime.datetime.now)
     code: PacketCode = field(init=False)
@@ -48,7 +50,7 @@ class Packet(ABC):
     def to_dict(self) -> dict[str, Any]:
         data_in_dict = asdict(self)
         data_in_dict["code"] = int(data_in_dict["code"])
-        data_in_dict["timestamp"] = data_in_dict["timestamp"].timestamp()
+        data_in_dict["timestamp"] = int(data_in_dict["timestamp"].timestamp())
         data_in_dict["length"] = 0
         data_in_dict["flags"] = extract_flags(data_in_dict)
 
@@ -57,13 +59,25 @@ class Packet(ABC):
     def to_bytes(self) -> bytes:
         data_in_dict = self.to_dict()
 
-        data_in_dict.pop("crc")
-        json_bytes = json.dumps(data_in_dict, separators=(",", ":")).encode("utf-8")
-
-        self.crc = zlib.crc32(json_bytes) & 0xFFFFFFFF
+        self.crc = self.calculate_crc(data_in_dict)
         data_in_dict["crc"] = self.crc
 
-        return json.dumps(data_in_dict, separators=(",", ":")).encode("utf-8")
+        return self.encode_dict(data_in_dict)
+
+    @classmethod
+    def encode_dict(cls, payload: dict[str, Any]) -> bytes:
+        return cls._codec.encode(dict(payload))
+
+    @classmethod
+    def decode_dict(cls, data: bytes) -> dict[str, Any]:
+        return cls._codec.decode(data)
+
+    @classmethod
+    def calculate_crc(cls, packet_dict: dict[str, Any]) -> int:
+        crc_payload = dict(packet_dict)
+        crc_payload.pop("crc", None)
+        encoded = cls._codec.encode(crc_payload)
+        return zlib.crc32(encoded) & 0xFFFFFFFF
 
     @classmethod
     def parse_timestamp(cls, payload: dict) -> datetime.datetime:
@@ -86,18 +100,14 @@ class Packet(ABC):
     def from_payload(cls: Type["Packet"], payload: dict) -> "Packet":
         return cls(timestamp=cls.parse_timestamp(payload), crc=payload["crc"])
 
-    @staticmethod
-    def from_any_payload(data: bytes | str) -> "Packet":
+    @classmethod
+    def from_any_payload(cls, data: bytes | str) -> "Packet":
         if not data:
             raise ValueError("No data received")
 
-        if isinstance(data, bytes):
-            data = data.decode("utf-8")
-
-        try:
-            parsed_data = json.loads(data)
-        except ValueError:
-            raise ValueError("Invalid JSON was provided")
+        parsed_data = cls.decode_dict(data)
+        if "flags" in parsed_data:
+            parsed_data["flags"] = PacketFlags(parsed_data["flags"])
 
         code = PacketCode(str(parsed_data["code"]))
         packet_cls = _PACKET_REGISTRY.get(code)
@@ -142,7 +152,7 @@ class SensorDataPkt(Packet):
             token=payload["token"],
             crc=payload["crc"],
             sensor_type=payload["sensor_type"],
-            is_low_battery=PacketFlags.LOW_BATTERY in payload["flags"],
+            is_low_battery=bool(payload["flags"] & PacketFlags.LOW_BATTERY),
             timestamp=cls.parse_timestamp(payload),
         )
 
