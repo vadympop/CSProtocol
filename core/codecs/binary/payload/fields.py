@@ -51,8 +51,8 @@ class BoundedPayloadField(PayloadField):
 
 @dataclass(frozen=True)
 class ShiftedDynamicPayloadField(PayloadField):
-    max_value: int
     min_value: int
+    max_value: int
 
     __header_bits_count: int = 2
     __segmentation_count: int = 4
@@ -73,7 +73,7 @@ class ShiftedDynamicPayloadField(PayloadField):
 
         return [
             min(min_bits + i * segments_step, max_bits)
-            for i in range(self.__segmentation_count)
+            for i in range(1, self.__segmentation_count+1)
         ]
 
     def get_body_size(self, header_bits: str) -> int:
@@ -87,7 +87,7 @@ class ShiftedDynamicPayloadField(PayloadField):
         if self.name not in payload:
             raise KeyError(f"Missing payload field '{self.name}'")
 
-        shifted_value = payload[self.name] - self.min_value
+        shifted_value = round(payload[self.name] - self.min_value, self.decimals)
         packed_value = int(shifted_value * self.decimals_multiplier)
         value_bits_needed = bits_required(packed_value)
 
