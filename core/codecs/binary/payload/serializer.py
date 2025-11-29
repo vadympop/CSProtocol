@@ -1,8 +1,6 @@
-import struct
 from typing import ClassVar
-
 from .fields import PayloadField
-from ..utils import bytes_to_bits, bits_to_bytes
+
 
 class PayloadSerializer:
     """Serializer responsible for encoding a sensor payload."""
@@ -16,18 +14,11 @@ class PayloadSerializer:
             raise ValueError("Payload serializers must define field_definitions")
 
         self._fields: tuple[PayloadField, ...] = tuple(self.field_definitions)
-        self._required_fields: tuple[str, ...] = tuple(
-            name for field in self._fields for name in field.required_names
-        )
-        self._struct_format = "!" + "".join(field.struct_format for field in self._fields)
+        self._required_fields: tuple[str, ...] = tuple(field.name for field in self._fields)
 
     @property
     def fields(self) -> tuple[PayloadField, ...]:
         return self._fields
-
-    @property
-    def struct_format(self) -> str:
-        return self._struct_format
 
     @property
     def field_names(self) -> tuple[str, ...]:
@@ -38,22 +29,22 @@ class PayloadSerializer:
         if missing:
             raise KeyError(f"Missing payload values for {missing!r}")
 
-    def encode_payload(self, payload: dict[str, int | float]) -> bytes:
-        self.validate_payload(payload)
-        packed_values = tuple(field.pack(payload) for field in self._fields)
-        return struct.pack(self._struct_format, *packed_values)
-
     def encode_to_bits(self, payload: dict[str, int | float]) -> str:
-        return bytes_to_bits(self.encode_payload(payload))
+        self.validate_payload(payload)
 
-    def decode_payload(self, payload_bytes: bytes) -> dict[str, int | float]:
-        parsed_fields = struct.unpack(self._struct_format, payload_bytes)
+        return "".join([field.pack(payload) for field in self._fields])
+
+    def decode_from_bits(self, payload_bits: str) -> dict[str, int | float]:
         result: dict[str, int] = {}
+        offset = 0
+        for field in self._fields:
+            header_bits = payload_bits[offset:offset + field.header_size]
+            offset += field.header_size
 
-        for field, value in zip(self._fields, parsed_fields):
-            result.update(field.unpack(value))
+            body_size = field.get_body_size(header_bits)
+            field_result = field.unpack(payload_bits[offset:offset + body_size])
+            offset += body_size
+
+            result.update(field_result)
 
         return result
-
-    def decode_from_bits(self, bits: str) -> dict[str, int | float]:
-        return self.decode_payload(bits_to_bytes(bits))

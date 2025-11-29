@@ -93,8 +93,9 @@ class HandlersManager:
 
         try:
             packet = Packet.from_any_payload(data)
-        except ValueError:
-            self._transport.sendto(InvalidPkt(), addr)
+        except ValueError as e:
+            print(e)
+            self._transport_core.sendto(InvalidPkt().to_bytes(), addr)
             return
 
         found_handlers = self._handlers.get(packet.code, [])

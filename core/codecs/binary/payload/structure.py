@@ -1,6 +1,6 @@
 from typing import Dict
 
-from .fields import ScalarPayloadField, CombinedPayloadField
+from .fields import BoundedPayloadField, ShiftedDynamicPayloadField
 from .serializer import PayloadSerializer
 
 
@@ -8,10 +8,10 @@ class TemperaturePayloadSerializer(PayloadSerializer):
     type_name = "TEMP"
     code = 0
     field_definitions = (
-        ScalarPayloadField("temperature", "h", 1),
-        ScalarPayloadField("humidity", "H", 1),
-        ScalarPayloadField("dew_point", "h", 1),
-        ScalarPayloadField("pressure", "I", 2),
+        BoundedPayloadField("temperature", 1),
+        BoundedPayloadField("humidity", 1),
+        BoundedPayloadField("dew_point", 1),
+        ShiftedDynamicPayloadField("pressure", 2,),
     )
 
 
@@ -19,10 +19,10 @@ class WindPayloadSerializer(PayloadSerializer):
     type_name = "WIND"
     code = 1
     field_definitions = (
-        ScalarPayloadField("wind_speed", "H", 1),
-        ScalarPayloadField("wind_gust", "H", 1),
-        ScalarPayloadField("wind_direction", "H", 0),
-        ScalarPayloadField("turbulence", "B", 1),
+        BoundedPayloadField("wind_speed", 1),
+        BoundedPayloadField("wind_gust", 1),
+        BoundedPayloadField("wind_direction", 0),
+        BoundedPayloadField("turbulence", 1),
     )
 
 
@@ -30,9 +30,10 @@ class RainPayloadSerializer(PayloadSerializer):
     type_name = "RAIN"
     code = 2
     field_definitions = (
-        ScalarPayloadField("rainfall", "H", 1),
-        ScalarPayloadField("soil_moisture", "H", 1),
-        CombinedPayloadField(("flood_risk", "rain_duration"), (2, 6), (0, 0)),
+        BoundedPayloadField("rainfall", 1),
+        BoundedPayloadField("soil_moisture", 1),
+        BoundedPayloadField("flood_risk", 0),
+        BoundedPayloadField("rain_duration", 0),
     )
 
 
@@ -40,9 +41,9 @@ class AirPayloadSerializer(PayloadSerializer):
     type_name = "AIR"
     code = 3
     field_definitions = (
-        ScalarPayloadField("co2", "H", 0),
-        ScalarPayloadField("ozone", "H", 1),
-        ScalarPayloadField("air_quality_index", "H", 0),
+        BoundedPayloadField("co2", 0),
+        BoundedPayloadField("ozone", 1),
+        BoundedPayloadField("air_quality_index", 0),
     )
 
 

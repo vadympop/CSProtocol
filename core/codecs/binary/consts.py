@@ -1,7 +1,3 @@
-BITS_COUNT_TO_STRUCT = {
-    8: "B",
-    16: "H",
-}
 SENSOR_TYPE_TO_INT = {
     "TEMP": 0,
     "WIND": 1,

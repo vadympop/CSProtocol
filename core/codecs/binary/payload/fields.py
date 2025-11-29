@@ -1,110 +1,109 @@
+import math
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import Mapping
 
-from ..consts import BITS_COUNT_TO_STRUCT
-from ..utils import  compose_combined_bits, parse_combined_bits
-
-class PayloadField(ABC):
-    """Base definition for a field inside a sensor payload"""
-
-    @property
-    @abstractmethod
-    def struct_format(self) -> str:
-        raise NotImplementedError
-
-    @property
-    @abstractmethod
-    def required_names(self) -> tuple[str, ...]:
-        raise NotImplementedError
-
-    @property
-    @abstractmethod
-    def decimals_multipliers(self) -> tuple[int, ...]:
-        raise NotImplementedError
-
-    @abstractmethod
-    def pack(self, payload: Mapping[str, int]) -> int:
-        raise NotImplementedError
-
-    @abstractmethod
-    def unpack(self, value: int) -> dict[str, int]:
-        raise NotImplementedError
-
+from ..utils import fit_to_str_bits, bits_required
 
 @dataclass(frozen=True)
-class ScalarPayloadField(PayloadField):
+class PayloadField(ABC):
+    """Base definition for a field inside a sensor payload"""
     name: str
-    format_char: str
-    decimal: int
+    decimals: int
 
     @property
-    def struct_format(self) -> str:
-        return self.format_char
+    def header_size(self) -> int:
+        return 0
 
     @property
-    def required_names(self) -> tuple[str, ...]:
-        return (self.name,)
+    def decimals_multiplier(self) -> int:
+        return 10**self.decimals
 
-    @property
-    def decimals_multipliers(self) -> tuple[int, ...]:
-        multiplier = 10**self.decimal if self.decimal > 0 else 1
-        return (multiplier,)
+    @abstractmethod
+    def get_body_size(self, header_bits: str) -> int:
+        raise NotImplementedError
 
-    def pack(self, payload: dict[str, int | float]) -> int:
-        if self.name not in payload:
-            raise KeyError(f"Missing payload field '{self.name}'")
+    @abstractmethod
+    def pack(self, payload: Mapping[str, int]) -> str:
+        raise NotImplementedError
 
-        return int(payload[self.name] * self.decimals_multipliers[0])
+    def unpack(self, value: str) -> dict[str, int | float]:
+        int_value = int(value, 2)
 
-    def unpack(self, value: int) -> dict[str, int | float]:
-        result = value / self.decimals_multipliers[0] if self.decimals_multipliers[0] > 0 else int(value)
+        result = int_value / self.decimals_multiplier if self.decimals_multiplier > 0 else int_value
         return {self.name: result}
 
 
 @dataclass(frozen=True)
-class CombinedPayloadField(PayloadField):
-    names: tuple[str, ...]
-    bits: tuple[int, ...]
-    decimals: tuple[int, ...]
+class BoundedPayloadField(PayloadField):
+    max_value: int
 
-    def __post_init__(self) -> None:
-        if len(self.names) != len(self.bits):
-            raise ValueError("Combined payload field names and bits must align")
+    def get_body_size(self, _ = None) -> int:
+        return bits_required(self.max_value * self.decimals_multiplier)
 
-        bits_sum = sum(self.bits)
-        if bits_sum not in BITS_COUNT_TO_STRUCT:
-            raise ValueError("Invalid combined field bits sum")
+    def pack(self, payload: dict[str, int | float]) -> str:
+        if self.name not in payload:
+            raise KeyError(f"Missing payload field '{self.name}'")
+
+        packed_value = int(payload[self.name] * self.decimals_multiplier)
+        return fit_to_str_bits(packed_value, self.get_body_size())
+
+
+@dataclass(frozen=True)
+class ShiftedDynamicPayloadField(PayloadField):
+    max_value: int
+    min_value: int
+
+    __header_bits_count: int = 2
+    __segmentation_count: int = 4
 
     @property
-    def struct_format(self) -> str:
-        return BITS_COUNT_TO_STRUCT[sum(self.bits)]
+    def header_size(self) -> int:
+        return self.__header_bits_count
 
     @property
-    def required_names(self) -> tuple[str, ...]:
-        return self.names
+    def computed_range(self) -> int:
+        return self.max_value - self.min_value
 
     @property
-    def decimals_multipliers(self) -> tuple[int, ...]:
-        return tuple((10**decimal if decimal > 0 else 1) for decimal in self.decimals)
+    def bits_segmentation(self) -> list[int]:
+        min_bits = bits_required(self.decimals_multiplier)
+        max_bits = bits_required(self.computed_range * self.decimals_multiplier)
+        segments_step = math.floor((max_bits - min_bits) / self.__segmentation_count)
 
-    def pack(self, payload: dict[str, int | float]) -> int:
-        filtered_payload = {k: v for k, v in payload.items() if k in self.required_names}
-        payload = {
-            k: int(v*multiplier)
-            for [k, v], multiplier in zip(filtered_payload.items(), self.decimals_multipliers)
-        }
-        return compose_combined_bits(payload, list(self.names), list(self.bits))
+        return [
+            min(min_bits + i * segments_step, max_bits)
+            for i in range(self.__segmentation_count)
+        ]
 
-    def unpack(self, value: int) -> dict[str, int | float]:
-        result = parse_combined_bits(value, list(self.names), list(self.bits))
-        return self._format_after_unpacking(result)
+    def get_body_size(self, header_bits: str) -> int:
+        if len(header_bits) != self.__header_bits_count:
+            raise ValueError(f"Header bits count ({len(header_bits)}) does not match")
 
-    def _format_after_unpacking(self, data: dict[str, int | float]) -> dict[str, int | float]:
-        for [k, v], multiplier in zip(data.items(), self.decimals_multipliers):
-            if multiplier == 1:
-                data[k] = int(v)
-            else:
-                data[k] = v / multiplier
+        index = int(header_bits, 2)
+        return self.bits_segmentation[index]
 
-        return data
+    def pack(self, payload: dict[str, int | float]) -> str:
+        if self.name not in payload:
+            raise KeyError(f"Missing payload field '{self.name}'")
+
+        shifted_value = payload[self.name] - self.min_value
+        packed_value = int(shifted_value * self.decimals_multiplier)
+        value_bits_needed = bits_required(packed_value)
+
+        # Choose smallest segment able to hold this value
+        segments = self.bits_segmentation
+        chosen_bits_segment = next(
+            (i for i, x in enumerate(segments) if x >= value_bits_needed),
+            len(segments) - 1
+        )
+
+        header_bits = fit_to_str_bits(chosen_bits_segment, self.__header_bits_count)
+        body = fit_to_str_bits(packed_value, segments[chosen_bits_segment])
+        return header_bits + body
+
+    def unpack(self, value: str) -> dict[str, int | float]:
+        result = super().unpack(value)
+        result[self.name] += self.min_value
+
+        return result

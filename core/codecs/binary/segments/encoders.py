@@ -3,7 +3,7 @@ from typing import TYPE_CHECKING
 from ..consts import SENSOR_TYPE_TO_INT
 from ..payload.serializer import PayloadSerializer
 from ..payload.structure import get_serializer_by_name, get_serializer_by_code
-from ..utils import fit_to_str_bits, bytes_to_bits
+from ..utils import fit_to_str_bits
 
 if TYPE_CHECKING:
     from .segment import BinarySegment
@@ -38,10 +38,9 @@ def _get_payload_bits(packet: dict) -> str:
         raise ValueError("Packet payload is required for encoding")
 
     serializer = _resolve_serializer(packet)
-    payload_bytes = serializer.encode_payload(payload)
-    bits = bytes_to_bits(payload_bytes)
-    packet[_PAYLOAD_BITS_CACHE_KEY] = bits
-    return bits
+    payload_bits = serializer.encode_to_bits(payload)
+    packet[_PAYLOAD_BITS_CACHE_KEY] = payload_bits
+    return payload_bits
 
 
 def _resolve_serializer(packet: dict) -> PayloadSerializer:
