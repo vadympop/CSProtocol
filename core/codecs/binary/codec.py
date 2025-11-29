@@ -33,7 +33,7 @@ class BinaryCodec(BaseCodec):
                 result[segment.field_name] = segment.decoder(bits, result)
                 break
 
-            result[segment.field_name] = segment.decoder(bits[:segment.header_size], result)
-            bits = bits[segment.header_size:]
+            result[segment.field_name] = segment.decoder(bits[:segment.bits_count], result)
+            bits = bits[segment.bits_count:]
 
         return result
