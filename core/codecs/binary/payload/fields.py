@@ -104,6 +104,6 @@ class ShiftedDynamicPayloadField(PayloadField):
 
     def unpack(self, value: str) -> dict[str, int | float]:
         result = super().unpack(value)
-        result[self.name] += self.min_value
+        result[self.name] = round(result[self.name] + self.min_value, self.decimals)
 
         return result
