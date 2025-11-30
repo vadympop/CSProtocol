@@ -30,7 +30,7 @@ class PayloadField(ABC):
     def unpack(self, value: str) -> dict[str, int | float]:
         int_value = int(value, 2)
 
-        result = int_value / self.decimals_multiplier if self.decimals_multiplier > 0 else int_value
+        result = int_value / self.decimals_multiplier if self.decimals > 0 else int_value
         return {self.name: result}
 
 
@@ -104,6 +104,8 @@ class ShiftedDynamicPayloadField(PayloadField):
 
     def unpack(self, value: str) -> dict[str, int | float]:
         result = super().unpack(value)
-        result[self.name] = round(result[self.name] + self.min_value, self.decimals)
+        result[self.name] += self.min_value
+        if self.decimals > 0:
+            result[self.name] = round(result[self.name], self.decimals)
 
         return result
