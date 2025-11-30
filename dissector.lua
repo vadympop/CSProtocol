@@ -28,31 +28,29 @@ local SENSOR_TYPES = {
     [3] = "AIR",
 }
 
-local SENSOR_PAYLOADS = {
+local SENSOR_SERIALIZERS = {
     TEMP = {
-        {name = "temperature", bits = 16, signed = true, scale = 10},
-        {name = "humidity", bits = 16, signed = false, scale = 10},
-        {name = "dew_point", bits = 16, signed = true, scale = 10},
-        {name = "pressure", bits = 32, signed = false, scale = 100},
+        { kind = "bounded", name = "temperature", decimals = 1, max = 60 },
+        { kind = "bounded", name = "humidity", decimals = 1, max = 100 },
+        { kind = "bounded", name = "dew_point", decimals = 1, max = 60 },
+        { kind = "shifted_dynamic", name = "pressure", decimals = 2, min = 800, max = 1100, header_bits = 2, segments = 4 },
     },
     WIND = {
-        {name = "wind_speed", bits = 16, signed = false, scale = 10},
-        {name = "wind_gust", bits = 16, signed = false, scale = 10},
-        {name = "wind_direction", bits = 16, signed = false, scale = 1},
-        {name = "turbulence", bits = 8, signed = false, scale = 10},
+        { kind = "bounded", name = "wind_speed", decimals = 1, max = 50 },
+        { kind = "bounded", name = "wind_gust", decimals = 1, max = 70 },
+        { kind = "bounded", name = "wind_direction", decimals = 0, max = 359 },
+        { kind = "bounded", name = "turbulence", decimals = 1, max = 1 },
     },
     RAIN = {
-        {name = "rainfall", bits = 16, signed = false, scale = 10},
-        {name = "soil_moisture", bits = 16, signed = false, scale = 10},
-        {name = "packed", bits = 8, kind = "combined", parts = {
-            {name = "flood_risk", bits = 2, scale = 1},
-            {name = "rain_duration", bits = 6, scale = 1},
-        }},
+        { kind = "bounded", name = "rainfall", decimals = 1, max = 500 },
+        { kind = "bounded", name = "soil_moisture", decimals = 1, max = 100 },
+        { kind = "bounded", name = "flood_risk", decimals = 0, max = 3 },
+        { kind = "bounded", name = "rain_duration", decimals = 0, max = 60 },
     },
     AIR = {
-        {name = "co2", bits = 16, signed = false, scale = 1},
-        {name = "ozone", bits = 16, signed = false, scale = 10},
-        {name = "air_quality_index", bits = 16, signed = false, scale = 1},
+        { kind = "bounded", name = "co2", decimals = 1, max = 5000 },
+        { kind = "bounded", name = "ozone", decimals = 1, max = 500 },
+        { kind = "bounded", name = "air_quality_index", decimals = 0, max = 500 },
     },
 }
 
@@ -81,7 +79,7 @@ fields.payload_rainfall = ProtoField.float("csprotocol.payload.rainfall", "Rainf
 fields.payload_soil_moisture = ProtoField.float("csprotocol.payload.soil_moisture", "Soil Moisture (%)")
 fields.payload_flood_risk = ProtoField.uint8("csprotocol.payload.flood_risk", "Flood Risk")
 fields.payload_rain_duration = ProtoField.uint8("csprotocol.payload.rain_duration", "Rain Duration (min)")
-fields.payload_co2 = ProtoField.uint16("csprotocol.payload.co2", "CO2 (ppm)")
+fields.payload_co2 = ProtoField.float("csprotocol.payload.co2", "CO2 (ppm)")
 fields.payload_ozone = ProtoField.float("csprotocol.payload.ozone", "Ozone (ppb)")
 fields.payload_air_quality = ProtoField.uint16("csprotocol.payload.air_quality_index", "Air Quality Index")
 
@@ -115,18 +113,21 @@ local function range_from_bits(start_bit, bit_len, tvb_len)
     return start_byte, byte_len
 end
 
-local function bits_to_number(bits_str, signed)
-    local value = tonumber(bits_str, 2)
-    if not signed then
-        return value
-    end
+local function bits_required_for_value(n)
+    if n <= 0 then return 1 end
+    -- floor(log2(n)) + 1
+    return math.ceil(math.log(n) / math.log(2))
+end
 
-    local bit_len = #bits_str
-    local limit = 1 << (bit_len - 1)
-    if (value & limit) ~= 0 then
-        value = value - (1 << bit_len)
-    end
-    return value
+local function bits_for_max(max_value, decimals)
+    if not max_value then return nil end
+    local scaled = math.floor(max_value * (10 ^ (decimals or 0)))
+    return bits_required_for_value(scaled)
+end
+
+local function bits_substr(bits, start_index_1, length)
+    if length <= 0 then return "" end
+    return bits:sub(start_index_1, start_index_1 + length - 1)
 end
 
 local PACKET_STRUCTURE = {
@@ -196,35 +197,29 @@ local function parse_packet(tvb)
     return parsed
 end
 
-local function decode_combined(value, parts)
-    local results = {}
-    local shift = 0
-    for _, part in ipairs(parts) do
-        shift = shift + part.bits
+local function make_shifted_segments(min_value, max_value, decimals, segments_count)
+    local mult = 10 ^ (decimals or 0)
+    local min_bits = bits_required_for_value(1 * mult)
+    local max_bits = bits_required_for_value(math.floor((max_value - min_value) * mult))
+    segments_count = segments_count or 4
+    if max_bits <= min_bits then
+        local arr = {}
+        for i=1,segments_count do arr[i] = min_bits end
+        return arr
     end
-
-    for _, part in ipairs(parts) do
-        shift = shift - part.bits
-        local mask = (1 << part.bits) - 1
-        local data = (value >> shift) & mask
-        if part.scale and part.scale > 1 then
-            data = data / part.scale
-        end
-        results[part.name] = data
+    local step = math.max(1, math.floor((max_bits - min_bits) / (segments_count - 1)))
+    local segs = {}
+    for i=0,segments_count-1 do
+        segs[#segs+1] = min_bits + i * step
     end
-
-    return results
+    return segs
 end
 
-local function decode_payload(sensor_type, payload_entry, length_entry)
-    if not sensor_type or not payload_entry or not length_entry then
-        return nil
-    end
 
-    local defs = SENSOR_PAYLOADS[sensor_type]
-    if not defs then
-        return nil
-    end
+local function decode_payload(sensor_type_name, payload_entry, length_entry)
+    if not sensor_type_name or not payload_entry or not length_entry then return nil end
+    local defs = SENSOR_SERIALIZERS[sensor_type_name]
+    if not defs then return nil end
 
     local bits = payload_entry.bits
     local max_bits = length_entry.value
@@ -233,98 +228,122 @@ local function decode_payload(sensor_type, payload_entry, length_entry)
     end
 
     local offset = 0
-    local values = {}
+    local result = {}
+
     for _, field in ipairs(defs) do
-        if offset + field.bits > #bits then
+        if field.kind == "bounded" then
+            -- body length: either explicit bits in definition or computed from max & decimals
+            local body_bits = field.bits or bits_for_max(field.max, field.decimals) or 0
+            if offset + body_bits > #bits then break end
+
+            local slice = bits_substr(bits, offset + 1, body_bits)
+            local value = tonumber(slice, 2) or 0
+            -- Note: no signed handling for bounded here (if needed, add field.signed=true)
+            if field.decimals and field.decimals > 0 then
+                value = value / (10 ^ field.decimals)
+            end
+            result[field.name] = value
+            offset = offset + body_bits
+
+        elseif field.kind == "shifted_dynamic" then
+            local header_bits = field.header_bits or 2
+            if offset + header_bits > #bits then break end
+            local header_slice = bits_substr(bits, offset + 1, header_bits)
+            local header_index = tonumber(header_slice, 2) or 0
+            offset = offset + header_bits
+
+            -- compute segments
+            local segs = make_shifted_segments(field.min or 0, field.max or 0, field.decimals or 0, field.segments or 4)
+            local seg_index = math.min(header_index + 1, #segs) -- lua 1-based
+            local body_len = segs[seg_index]
+
+            if offset + body_len > #bits then break end
+            local body_slice = bits_substr(bits, offset + 1, body_len)
+            local encoded = tonumber(body_slice, 2) or 0
+            local value = encoded / (10 ^ (field.decimals or 0)) + (field.min or 0)
+            result[field.name] = value
+            offset = offset + body_len
+
+        else
+            -- unknown kind: skip safe (you can log)
             break
         end
-
-        local slice = bits:sub(offset + 1, offset + field.bits)
-        if field.kind == "combined" then
-            local combined_value = tonumber(slice, 2)
-            local combined = decode_combined(combined_value, field.parts)
-            for name, value in pairs(combined) do
-                values[name] = value
-            end
-        else
-            local value = bits_to_number(slice, field.signed)
-            if field.scale and field.scale > 1 then
-                value = value / field.scale
-            end
-            values[field.name] = value
-        end
-
-        offset = offset + field.bits
     end
 
-    values.__payload_bits = bits
-    values.__payload_bit_length = max_bits
-    return values
+    result.__payload_bits = bits
+    result.__payload_bit_length = max_bits
+    return result
 end
 
 local function add_payload_fields(payload_tree, sensor_type, payload_values, payload_entry, tvb)
-    if not payload_values then
-        return
-    end
-
-    local payload_fields = SENSOR_PAYLOADS[sensor_type]
-    if not payload_fields then
-        return
-    end
+    if not payload_values then return end
+    if not sensor_type then return end
+    local defs = SENSOR_SERIALIZERS[sensor_type]
+    if not defs then return end
 
     local offsets = 0
-    for _, field in ipairs(payload_fields) do
+    for _, field in ipairs(defs) do
         local start_bit = payload_entry.start_bit + offsets
-        local bit_len = field.bits
+        local bit_len
+
+        if field.kind == "bounded" then
+            bit_len = field.bits or bits_for_max(field.max, field.decimals) or 0
+
+        elseif field.kind == "shifted_dynamic" then
+            -- header present
+            local header_bits = field.header_bits or 2
+            -- We need to pick the body size used during decode; we can re-derive it
+            local segs = make_shifted_segments(field.min or 0, field.max or 0, field.decimals or 0, field.segments or 4)
+            -- find the index from payload bits
+            local header_slice = payload_entry.bits:sub(offsets + 1, offsets + header_bits)
+            local header_index = tonumber(header_slice, 2) or 0
+            local body_len = segs[math.min(header_index + 1, #segs)]
+            bit_len = header_bits + body_len
+
+        else
+            break
+        end
+
         local start_byte, byte_len = range_from_bits(start_bit, bit_len, tvb:len())
         local range = tvb(start_byte, math.max(byte_len, 0))
 
-        if field.kind == "combined" then
-            local combined_value = tonumber(payload_entry.bits:sub(offsets + 1, offsets + field.bits), 2)
-            local combined = decode_combined(combined_value, field.parts)
-            for _, part in ipairs(field.parts) do
-                local name = part.name
-                local value = combined[name]
-                if name == "flood_risk" then
-                    payload_tree:add(fields.payload_flood_risk, range, value)
-                elseif name == "rain_duration" then
-                    payload_tree:add(fields.payload_rain_duration, range, value)
-                end
-            end
-        else
-            local value = payload_values[field.name]
-            if value ~= nil then
-                if field.name == "temperature" then
-                    payload_tree:add(fields.payload_temperature, range, value)
-                elseif field.name == "humidity" then
-                    payload_tree:add(fields.payload_humidity, range, value)
-                elseif field.name == "dew_point" then
-                    payload_tree:add(fields.payload_dew_point, range, value)
-                elseif field.name == "pressure" then
-                    payload_tree:add(fields.payload_pressure, range, value)
-                elseif field.name == "wind_speed" then
-                    payload_tree:add(fields.payload_wind_speed, range, value)
-                elseif field.name == "wind_gust" then
-                    payload_tree:add(fields.payload_wind_gust, range, value)
-                elseif field.name == "wind_direction" then
-                    payload_tree:add(fields.payload_wind_direction, range, value)
-                elseif field.name == "turbulence" then
-                    payload_tree:add(fields.payload_turbulence, range, value)
-                elseif field.name == "rainfall" then
-                    payload_tree:add(fields.payload_rainfall, range, value)
-                elseif field.name == "soil_moisture" then
-                    payload_tree:add(fields.payload_soil_moisture, range, value)
-                elseif field.name == "co2" then
-                    payload_tree:add(fields.payload_co2, range, value)
-                elseif field.name == "ozone" then
-                    payload_tree:add(fields.payload_ozone, range, value)
-                elseif field.name == "air_quality_index" then
-                    payload_tree:add(fields.payload_air_quality, range, value)
-                end
+        -- Now map field.name -> ProtoField and add appropriate type
+        local value = payload_values[field.name]
+        if value ~= nil then
+            if field.name == "temperature" then
+                payload_tree:add(fields.payload_temperature, range, value)
+            elseif field.name == "humidity" then
+                payload_tree:add(fields.payload_humidity, range, value)
+            elseif field.name == "dew_point" then
+                payload_tree:add(fields.payload_dew_point, range, value)
+            elseif field.name == "pressure" then
+                payload_tree:add(fields.payload_pressure, range, value)
+            elseif field.name == "wind_speed" then
+                payload_tree:add(fields.payload_wind_speed, range, value)
+            elseif field.name == "wind_gust" then
+                payload_tree:add(fields.payload_wind_gust, range, value)
+            elseif field.name == "wind_direction" then
+                payload_tree:add(fields.payload_wind_direction, range, value)
+            elseif field.name == "turbulence" then
+                payload_tree:add(fields.payload_turbulence, range, value)
+            elseif field.name == "rainfall" then
+                payload_tree:add(fields.payload_rainfall, range, value)
+            elseif field.name == "soil_moisture" then
+                payload_tree:add(fields.payload_soil_moisture, range, value)
+            elseif field.name == "flood_risk" then
+                payload_tree:add(fields.payload_flood_risk, range, value)
+            elseif field.name == "rain_duration" then
+                payload_tree:add(fields.payload_rain_duration, range, value)
+            elseif field.name == "ozone" then
+                payload_tree:add(fields.payload_ozone, range, value)
+            elseif field.name == "air_quality_index" then
+                payload_tree:add(fields.payload_air_quality, range, value)
+            elseif field.name == "co2" then
+                payload_tree:add(fields.payload_co2, range, value)
             end
         end
 
-        offsets = offsets + field.bits
+        offsets = offsets + bit_len
     end
 end
 
