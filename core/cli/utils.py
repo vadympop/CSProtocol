@@ -1,6 +1,7 @@
 import sys
 
-from client.consts import DEFAULT_SERVER_ADDR, SENSORS_CONFIGURATION, DEFAULT_SENSOR_IP
+from client.consts import DEFAULT_SERVER_ADDR, DEFAULT_SENSOR_IP
+from core.configs.sensors_config import SENSORS_CONFIGURATION
 
 
 def has_debug_flag() -> bool:

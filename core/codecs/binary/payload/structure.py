@@ -1,5 +1,6 @@
 from typing import Dict
 
+from core.configs.sensors_config import get_sensors_field_attr
 from .fields import BoundedPayloadField, ShiftedDynamicPayloadField
 from .serializer import PayloadSerializer
 
@@ -8,10 +9,15 @@ class TemperaturePayloadSerializer(PayloadSerializer):
     type_name = "TEMP"
     code = 0
     field_definitions = (
-        BoundedPayloadField("temperature", 1),
-        BoundedPayloadField("humidity", 1),
-        BoundedPayloadField("dew_point", 1),
-        ShiftedDynamicPayloadField("pressure", 2,),
+        BoundedPayloadField("temperature", 1, get_sensors_field_attr("t.temperature.max")),
+        BoundedPayloadField("humidity", 1, get_sensors_field_attr("t.humidity.max")),
+        BoundedPayloadField("dew_point", 1, get_sensors_field_attr("t.dew_point.max")),
+        ShiftedDynamicPayloadField(
+            "pressure",
+            get_sensors_field_attr("t.pressure.decimals"),
+            get_sensors_field_attr("t.pressure.min"),
+            get_sensors_field_attr("t.pressure.max")
+        ),
     )
 
 
@@ -19,10 +25,10 @@ class WindPayloadSerializer(PayloadSerializer):
     type_name = "WIND"
     code = 1
     field_definitions = (
-        BoundedPayloadField("wind_speed", 1),
-        BoundedPayloadField("wind_gust", 1),
-        BoundedPayloadField("wind_direction", 0),
-        BoundedPayloadField("turbulence", 1),
+        BoundedPayloadField("wind_speed", 1, get_sensors_field_attr("w.wind_speed.max")),
+        BoundedPayloadField("wind_gust", 1, get_sensors_field_attr("w.wind_gust.max")),
+        BoundedPayloadField("wind_direction", 0, get_sensors_field_attr("w.wind_direction.max")),
+        BoundedPayloadField("turbulence", 1, get_sensors_field_attr("w.turbulence.max")),
     )
 
 
@@ -30,10 +36,10 @@ class RainPayloadSerializer(PayloadSerializer):
     type_name = "RAIN"
     code = 2
     field_definitions = (
-        BoundedPayloadField("rainfall", 1),
-        BoundedPayloadField("soil_moisture", 1),
-        BoundedPayloadField("flood_risk", 0),
-        BoundedPayloadField("rain_duration", 0),
+        BoundedPayloadField("rainfall", 1, get_sensors_field_attr("r.rainfall.max")),
+        BoundedPayloadField("soil_moisture", 1, get_sensors_field_attr("r.soil_moisture.max")),
+        BoundedPayloadField("flood_risk", 0, get_sensors_field_attr("r.flood_risk.max")),
+        BoundedPayloadField("rain_duration", 0, get_sensors_field_attr("r.rain_duration.max")),
     )
 
 
@@ -41,9 +47,9 @@ class AirPayloadSerializer(PayloadSerializer):
     type_name = "AIR"
     code = 3
     field_definitions = (
-        BoundedPayloadField("co2", 0),
-        BoundedPayloadField("ozone", 1),
-        BoundedPayloadField("air_quality_index", 0),
+        BoundedPayloadField("co2", 1, get_sensors_field_attr("a.co2.max")),
+        BoundedPayloadField("ozone", 1, get_sensors_field_attr("a.ozone.max")),
+        BoundedPayloadField("air_quality_index", 0, get_sensors_field_attr("a.air_quality_index.max")),
     )
 
 
