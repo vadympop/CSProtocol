@@ -5,14 +5,14 @@ class PacketCode(str, Enum):
     SENSOR_REGISTRATION = "0"
     SENSOR_DATA = "1"
     CHECK_ALIVE_RESPONSE = "2"
-    REGISTRATION_ACK = "10"
-    DATA_ACK = "11"
-    CHECK_ALIVE = "12"
-    INVALID_PKT = "30"
-    INVALID_TOKEN = "29"
-    INVALID_CRC = "28"
-    # < 10 - sensor codes
-    # >= 10 & < 20 - server codes
-    # >= 20 - error codes
+    REGISTRATION_ACK = "5"
+    DATA_ACK = "6"
+    CHECK_ALIVE = "7"
+    INVALID_PKT = "13"
+    INVALID_TOKEN = "14"
+    INVALID_CRC = "15"
+    # < 5 - sensor codes
+    # >= 5 & < 10 - server codes
+    # >= 10 - error codes
 
     GLOBAL = "*"
