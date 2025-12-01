@@ -47,7 +47,12 @@ class AirPayloadSerializer(PayloadSerializer):
     type_name = "AIR"
     code = 3
     field_definitions = (
-        BoundedPayloadField("co2", 1, get_sensors_field_attr("a.co2.max")),
+        ShiftedDynamicPayloadField(
+            "co2",
+            get_sensors_field_attr("a.co2.decimals"),
+            get_sensors_field_attr("a.co2.min"),
+            get_sensors_field_attr("a.co2.max")
+        ),
         BoundedPayloadField("ozone", 1, get_sensors_field_attr("a.ozone.max")),
         BoundedPayloadField("air_quality_index", 0, get_sensors_field_attr("a.air_quality_index.max")),
     )

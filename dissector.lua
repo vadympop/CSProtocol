@@ -48,7 +48,7 @@ local SENSOR_SERIALIZERS = {
         { kind = "bounded", name = "rain_duration", decimals = 0, max = 60 },
     },
     AIR = {
-        { kind = "bounded", name = "co2", decimals = 1, max = 5000 },
+        { kind = "shifted_dynamic", name = "co2", decimals = 1, min = 300, max = 5000, header_bits = 2, segments = 4 },
         { kind = "bounded", name = "ozone", decimals = 1, max = 500 },
         { kind = "bounded", name = "air_quality_index", decimals = 0, max = 500 },
     },
@@ -137,7 +137,7 @@ local PACKET_STRUCTURE = {
     {name = "crc", bits = 32},
     {name = "sensor_type", bits = 2, flag = FLAG_BITS.SENSOR_TYPE},
     {name = "token", bits = 32, flag = FLAG_BITS.TOKEN},
-    {name = "length", bits = 8, flag = FLAG_BITS.PAYLOAD},
+    {name = "length", bits = 6, flag = FLAG_BITS.PAYLOAD},
     {name = "payload", bits = -1, flag = FLAG_BITS.PAYLOAD},
 }
 
