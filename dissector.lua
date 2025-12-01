@@ -232,19 +232,17 @@ local function decode_payload(sensor_type_name, payload_entry, length_entry)
 
     for _, field in ipairs(defs) do
         if field.kind == "bounded" then
-            -- body length: either explicit bits in definition or computed from max & decimals
             local body_bits = field.bits or bits_for_max(field.max, field.decimals) or 0
             if offset + body_bits > #bits then break end
 
             local slice = bits_substr(bits, offset + 1, body_bits)
             local value = tonumber(slice, 2) or 0
-            -- Note: no signed handling for bounded here (if needed, add field.signed=true)
+
             if field.decimals and field.decimals > 0 then
                 value = value / (10 ^ field.decimals)
             end
             result[field.name] = value
             offset = offset + body_bits
-
         elseif field.kind == "shifted_dynamic" then
             local header_bits = field.header_bits or 2
             if offset + header_bits > #bits then break end
@@ -254,7 +252,7 @@ local function decode_payload(sensor_type_name, payload_entry, length_entry)
 
             -- compute segments
             local segs = make_shifted_segments(field.min or 0, field.max or 0, field.decimals or 0, field.segments or 4)
-            local seg_index = math.min(header_index + 1, #segs) -- lua 1-based
+            local seg_index = math.min(header_index + 1, #segs)
             local body_len = segs[seg_index]
 
             if offset + body_len > #bits then break end
@@ -263,10 +261,6 @@ local function decode_payload(sensor_type_name, payload_entry, length_entry)
             local value = encoded / (10 ^ (field.decimals or 0)) + (field.min or 0)
             result[field.name] = value
             offset = offset + body_len
-
-        else
-            -- unknown kind: skip safe (you can log)
-            break
         end
     end
 
@@ -290,11 +284,9 @@ local function add_payload_fields(payload_tree, sensor_type, payload_values, pay
             bit_len = field.bits or bits_for_max(field.max, field.decimals) or 0
 
         elseif field.kind == "shifted_dynamic" then
-            -- header present
             local header_bits = field.header_bits or 2
-            -- We need to pick the body size used during decode; we can re-derive it
             local segs = make_shifted_segments(field.min or 0, field.max or 0, field.decimals or 0, field.segments or 4)
-            -- find the index from payload bits
+
             local header_slice = payload_entry.bits:sub(offsets + 1, offsets + header_bits)
             local header_index = tonumber(header_slice, 2) or 0
             local body_len = segs[math.min(header_index + 1, #segs)]
@@ -307,7 +299,7 @@ local function add_payload_fields(payload_tree, sensor_type, payload_values, pay
         local start_byte, byte_len = range_from_bits(start_bit, bit_len, tvb:len())
         local range = tvb(start_byte, math.max(byte_len, 0))
 
-        -- Now map field.name -> ProtoField and add appropriate type
+        -- Map field.name -> ProtoField and add appropriate type
         local value = payload_values[field.name]
         if value ~= nil then
             if field.name == "temperature" then
