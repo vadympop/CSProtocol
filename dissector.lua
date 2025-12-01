@@ -6,12 +6,12 @@ local PACKET_CODES = {
     [0] = "SENSOR_REGISTRATION",
     [1] = "SENSOR_DATA",
     [2] = "CHECK_ALIVE_RESPONSE",
-    [10] = "REGISTRATION_ACK",
-    [11] = "DATA_ACK",
-    [12] = "CHECK_ALIVE",
-    [28] = "INVALID_CRC",
-    [29] = "INVALID_TOKEN",
-    [30] = "INVALID_PKT",
+    [5] = "REGISTRATION_ACK",
+    [6] = "DATA_ACK",
+    [7] = "CHECK_ALIVE",
+    [13] = "INVALID_PKT",
+    [14] = "INVALID_TOKEN",
+    [15] = "INVALID_CRC",
 }
 
 local FLAG_BITS = {
@@ -361,7 +361,7 @@ function csproto.dissector(tvb, pinfo, tree)
 
     local first_byte = tvb(0, 1)
     if code_entry then
-        subtree:add(fields.code, first_byte, code_entry.value)
+        subtree:add(fields.code, first_byte)
     end
 
     if parsed.flags then
